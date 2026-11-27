@@ -4,7 +4,13 @@ Roguelike d'action vu de dessus, jouable directement dans le navigateur. Tu es u
 
 ## Jouer
 
-Ouvre `index.html` dans un navigateur récent. Tout le jeu tient dans ce seul fichier, sans installation : les images, la musique et les sons sont générés pendant la partie.
+En ligne : https://yankamkevin.github.io/kevrift/ (une fois GitHub Pages activé).
+
+En local, le jeu est en modules ES : il faut un petit serveur (un double-clic sur `index.html` ne suffit plus). Les images, la musique et les sons sont toujours générés pendant la partie.
+
+```bash
+npm start          # puis ouvrir http://localhost:8000
+```
 
 ## Commandes
 
@@ -30,12 +36,40 @@ Ouvre `index.html` dans un navigateur récent. Tout le jeu tient dans ce seul fi
 
 Les réglages (volume, secousses, lueur) et ta meilleure partie sont gardés dans ton navigateur.
 
+## Technique
+
+Version 1.1.0 (affichée sur l'écran titre). Pas d'étape de compilation : le navigateur charge `src/main.js`.
+
+| Fichier | Rôle |
+|---|---|
+| `src/config.js`, `src/ups.js` | Données : strates, plan d'une plongée, ennemis, boss ; les 26 pouvoirs. |
+| `src/rooms.js` | Plongée et salles : génération, vagues, portails, progression, pouvoirs. Sans DOM. |
+| `src/combat.js`, `src/boss.js`, `src/effects.js` | Combat du héros, ennemis, boss et ses phases, effets. Sans DOM. |
+| `src/update.js` | Une image de jeu. Sans DOM : testée sous Node. |
+| `src/save.js` | Sauvegarde versionnée. |
+| `src/state.js` | État partagé et liaisons vers l'interface. |
+| `src/render.js`, `src/input.js`, `src/ui.js`, `src/audio.js` | Dessin, entrées (clavier, souris, manette, tactile), écrans, son. |
+
+Les types sont vérifiés par TypeScript sur le JavaScript (`// @ts-check` + JSDoc, `npm run types`).
+`?graine=N` rend une plongée reproductible et `?turbo=N` l'accélère (utilisés par les tests).
+
+## Sauvegarde
+
+Clé `kevrift.sauvegarde` dans le navigateur : `{ version, cfg: { mus, sfx, shake, glow }, best }`.
+Tout changement de format incrémente `SAVE_VERSION` et ajoute une étape à `migrate()`.
+Une sauvegarde abîmée ou d'une version plus récente est mise de côté sous `kevrift.sauvegarde.abimee`, jamais écrasée.
+L'ancien format (`kevrift_cfg` et `kevrift_best`) est repris automatiquement une fois, puis effacé.
+
 ## Tests
-Un test de fumée joue le jeu tout seul sur ordinateur, iPhone SE et Pixel 7 couché (Chromium) : il échoue sur toute erreur console, un bouton hors de l'écran impossible à atteindre, une page qui déborde ou une chute d'images/s.
 
 ```bash
 npm install
 npx playwright install chromium
-npm test            # captures dans test-results/
+npm test            # types + unitaires + fumée + plongée complète ; captures dans test-results/
 ```
-Réglages propres au jeu : `tests/smoke.config.mjs`. La CI GitHub (`.github/workflows/tests.yml`) le lance sur chaque PR.
+
+- `npm run unit` : plongée complète simulée (3 strates, toutes les salles, boss vaincu), même graine = même plongée, vagues, coups, dégâts, esquive, mort, les 26 pouvoirs, phases du boss, sauvegarde (abîmée, trop récente, stockage bloqué, ancien format, record).
+- `npm run smoke` : le jeu joue tout seul sur ordinateur, iPhone SE et Pixel 7 couché ; échoue sur toute erreur console, un bouton hors écran, une page qui déborde ou une chute d'images/s.
+- `npm run partie` : dans le navigateur, le héros bouge et frappe au clavier, puis une plongée assistée va jusqu'à l'écran de victoire en cliquant les vraies cartes ; record, réglages, ancien format et sauvegarde abîmée vérifiés après rechargement.
+
+La CI GitHub (`.github/workflows/tests.yml`) lance tout sur chaque PR et bloque en cas d'échec. GitHub Pages publie directement la branche `main` (fichier `.nojekyll`).

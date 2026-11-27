@@ -1,0 +1,71 @@
+
+/* VOICE: nerveux, mystique, arcade de nuit
+   IDEA: une faille de cristal qui s'ouvre sous tes pieds, salle après salle
+   PICTURE: l'arène elle-même, plein cadre, lumière vive sur fond profond
+   COLOUR and TYPE: abysse sombre, cyan cristal, rose braise, or du néant ; Unbounded + Chakra Petch
+   LAYOUT: jeu 16:9 centré, HUD peint dans la scène, menus en surimpression */
+:root{color-scheme:dark;--acc:#3ff3e0;--ink:#eafcff;--mute:#8fb4c0;--gold:#ffd45a;--pink:#ff4d8d;--vio:#c77dff}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#020507;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+body{display:grid;place-items:center;font-family:'Chakra Petch',system-ui,sans-serif;color:var(--ink)}
+#stage{position:relative;overflow:hidden;box-shadow:0 0 80px #000}
+#cv{display:block;cursor:crosshair}
+.ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.9em;text-align:center;padding:1.5em;background:radial-gradient(80% 90% at 50% 45%,#04121acc 0%,#020609f2 100%)}
+.ov.on{display:flex}
+.ov.clear{background:radial-gradient(70% 80% at 50% 50%,#02080b66 0%,#020609d9 100%)}
+.logo{font:900 5.2em/0.95 Unbounded,sans-serif;letter-spacing:-.02em;margin:0;background:linear-gradient(180deg,#fff 0%,#9ffcf2 45%,#3ff3e0 60%,#ff4d8d 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 .35em #3ff3e088)}
+.logo i{font-style:normal;display:inline-block;transform:skewX(-12deg);background:inherit;-webkit-background-clip:text;background-clip:text;color:transparent;padding-right:.06em}
+.sub{font-size:1.15em;color:var(--mute);margin:0 0 .6em;max-width:34em}
+h2{font:800 2.4em/1 Unbounded,sans-serif;margin:0 0 .2em;letter-spacing:-.01em}
+h2.red{color:#ff5a7a;text-shadow:0 0 .5em #ff2d5a88}
+h2.gold{color:var(--gold);text-shadow:0 0 .5em #ffd45a88}
+.row{display:flex;gap:.8em;flex-wrap:wrap;justify-content:center}
+.btn{all:unset;cursor:pointer;font:700 1.05em 'Chakra Petch',sans-serif;letter-spacing:.04em;padding:.65em 1.7em;min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;color:var(--ink);background:#0b2a31d9;border:2px solid #3ff3e0aa;clip-path:polygon(.7em 0,100% 0,100% calc(100% - .7em),calc(100% - .7em) 100%,0 100%,0 .7em);transition:background .12s,color .12s,transform .12s}
+.btn:hover,.btn:focus,.btn:focus-visible{background:var(--acc);color:#03161a;outline:none;transform:translateY(-2px)}
+.btn.big{font-size:1.35em;padding:.7em 2.4em}
+.btn.ghost{background:#0000;border-color:#ffffff33}
+.best{color:var(--gold);font-size:.95em;min-height:1.2em}
+.cards{display:flex;gap:1.1em;justify-content:center;flex-wrap:wrap}
+.card{all:unset;cursor:pointer;width:12.5em;min-height:15.5em;box-sizing:border-box;padding:1.1em 1em;display:flex;flex-direction:column;align-items:center;gap:.5em;text-align:center;background:linear-gradient(170deg,#0f2b33f2,#071419f2 70%);border:2px solid var(--rc,#8fe9ff);clip-path:polygon(1em 0,100% 0,100% calc(100% - 1em),calc(100% - 1em) 100%,0 100%,0 1em);transition:transform .14s,box-shadow .14s,filter .14s;position:relative;animation:cardIn .35s backwards}
+.card:nth-child(2){animation-delay:.07s}.card:nth-child(3){animation-delay:.14s}.card:nth-child(4){animation-delay:.21s}
+@keyframes cardIn{from{transform:translateY(1.5em) scale(.92);opacity:0}}
+.card:hover,.card:focus-visible{transform:translateY(-.5em) scale(1.04);outline:none;filter:brightness(1.25);box-shadow:0 0 2em var(--rc)}
+.card .ic{width:3.6em;height:3.6em;color:var(--rc);filter:drop-shadow(0 0 .4em var(--rc))}
+.card .rar{font-size:.72em;color:var(--rc);letter-spacing:.12em}
+.card b{font:700 1.15em/1.15 Unbounded,sans-serif}
+.card p{margin:0;font-size:.95em;color:#cfe7ee;line-height:1.3}
+.card .lv{margin-top:auto;font-size:.8em;color:var(--mute)}
+.card .price{margin-top:auto;font:700 1.1em 'Chakra Petch';color:var(--acc)}
+.card.poor{filter:grayscale(.8) brightness(.7)}
+.card.sold{visibility:hidden}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6em 1.6em;margin:.4em 0 .8em}
+.stats div{display:flex;flex-direction:column}
+.stats b{font:700 1.6em Unbounded,sans-serif;color:var(--acc)}
+.stats small{color:var(--mute);font-size:.85em}
+.help{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1em;max-width:52em;text-align:left;font-size:.9em}
+.help div{background:#ffffff0a;padding:.8em 1em;clip-path:polygon(.6em 0,100% 0,100% 100%,0 100%,0 .6em)}
+.help h3{margin:0 0 .4em;font:700 1em Unbounded,sans-serif;color:var(--acc)}
+.help p{margin:.15em 0;color:#cfe7ee}
+kbd{font-family:inherit;background:#ffffff1a;padding:0 .35em;border-radius:3px;color:#fff}
+.set{display:grid;grid-template-columns:auto 12em;gap:.5em 1em;align-items:center;text-align:left;font-size:.95em}
+.set input[type=range]{width:100%;accent-color:var(--acc);height:28px}
+.tg{all:unset;cursor:pointer;padding:.3em .8em;border:1px solid #ffffff44;text-align:center;min-height:30px;box-sizing:border-box}
+.tg:focus-visible{outline:2px solid var(--acc)}
+.tg.on{background:var(--acc);color:#03161a;border-color:var(--acc)}
+.upl{display:flex;flex-wrap:wrap;gap:.35em;justify-content:center;max-width:44em;font-size:.82em}
+.upl span{padding:.2em .6em;border:1px solid var(--rc);color:var(--rc)}
+#touch{position:absolute;inset:0;display:none;pointer-events:none}
+#touch.on{display:block}
+.tb{position:absolute;pointer-events:auto;border-radius:50%;display:grid;place-items:center;font:700 .95em 'Chakra Petch';color:#fff;background:#ffffff14;border:2px solid #ffffff40;touch-action:none}
+.tb.dn{background:#3ff3e055;border-color:var(--acc)}
+#tAtk{width:5.6em;height:5.6em;right:1.2em;bottom:1.2em}
+#tDash{width:4em;height:4em;right:7.6em;bottom:.8em}
+#tShot{width:4em;height:4em;right:7.4em;bottom:5.9em}
+#tNova{width:3.8em;height:3.8em;right:1.9em;bottom:7.6em}
+#tNova.rdy{border-color:var(--gold);background:#ffd45a44;box-shadow:0 0 1em var(--gold)}
+#tPause{width:2.8em;height:2.8em;left:.8em;top:4.4em;border-radius:6px}
+#joy{position:absolute;width:7em;height:7em;margin:-3.5em 0 0 -3.5em;border-radius:50%;border:2px solid #ffffff40;background:#ffffff0c;display:none}
+#joy i{position:absolute;left:50%;top:50%;width:3em;height:3em;margin:-1.5em;border-radius:50%;background:#3ff3e088;border:2px solid var(--acc)}
+#rot{display:none;position:fixed;inset:0;background:#020507;color:var(--ink);place-items:center;text-align:center;font-size:18px;padding:2em;z-index:9}
+@media (orientation:portrait) and (pointer:coarse){#rot.need{display:grid}}
+@media (prefers-reduced-motion:reduce){.card{animation:none}}
