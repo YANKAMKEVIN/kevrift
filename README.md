@@ -48,10 +48,19 @@ Version 1.1.0 (affichée sur l'écran titre). Pas d'étape de compilation : le n
 | `src/update.js` | Une image de jeu. Sans DOM : testée sous Node. |
 | `src/save.js` | Sauvegarde versionnée. |
 | `src/state.js` | État partagé et liaisons vers l'interface. |
+| `src/art.js` | Visuels peints (dossier `art/`), chargés au démarrage. |
 | `src/render.js`, `src/input.js`, `src/ui.js`, `src/audio.js` | Dessin, entrées (clavier, souris, manette, tactile), écrans, son. |
 
 Les types sont vérifiés par TypeScript sur le JavaScript (`// @ts-check` + JSDoc, `npm run types`).
 `?graine=N` rend une plongée reproductible et `?turbo=N` l'accélère (utilisés par les tests).
+
+## Visuels
+
+Les 13 visuels du dossier `art/` ont été peints avec Codex (prompts dans `tools/art/prompts.json`) :
+le tableau de l'écran titre, un sol par strate (Jardins de verre, Forges pourpres, Cœur du néant),
+le héros, les 7 ennemis et l'Archonte. Les signaux de jeu (visée du cracheur, mèche du kamikaze,
+charge de la brute, phases du boss) restent dessinés par-dessus. Si une image manque, le jeu
+retombe sur le dessin procédural d'origine.
 
 ## Sauvegarde
 

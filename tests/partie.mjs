@@ -45,6 +45,8 @@ try {
 
   await page.goto(URL);
   check(/^v\d+\.\d+\.\d+$/.test(await page.locator('#ver').innerText()), 'numéro de version sur l\'écran titre');
+  await page.waitForFunction(() => __kev.art !== undefined, null, { timeout: 10000 });
+  check(await page.evaluate(() => __kev.art) === 13, 'les 13 visuels peints sont chargés (titre, sols, héros, ennemis, Archonte)');
   await page.click('#bPlay');
   await page.waitForFunction(() => __kev.game.state === 'play');
 
