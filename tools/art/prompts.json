@@ -1,0 +1,24 @@
+{
+  "style": "Peinture numérique d'action-fantasy sombre et lumineuse, façon roguelike indé haut de gamme : cristal, néon, magie, contrastes forts, lisible de loin, vue de dessus légèrement inclinée (trois quarts haut). Aucun texte, aucun logo, aucune lettre, aucune signature, aucun filigrane.",
+  "fond_detourage": "Sujet seul, entier, centré, vu de dessus en trois quarts, sur un fond uni magenta pur #FF00FF sans dégradé, sans sol ni ombre portée sur le fond, pour être détouré ensuite.",
+  "images": [
+    {"fichier": "titre", "taille": "1920x1080", "detourer": false,
+     "prompt": "Affiche d'ouverture du roguelike « Kevrift » : un guerrier de cristal cyan à l'épée lumineuse, vu de dos, au bord d'une immense faille qui plonge à travers trois strates (jardins de verre turquoise, forges pourpres, néant doré), et tout au fond une silhouette colossale fracturée aux yeux dorés. Garder le tiers haut central calme pour poser le titre."},
+    {"fichier": "sol_jardins", "taille": "1920x1080", "detourer": false,
+     "prompt": "Sol d'une salle de donjon vu strictement de dessus, remplissant tout le cadre : dalles de verre turquoise sombre fissurées, mousse luminescente cyan dans les joints, fines racines de cristal. Éclairage doux et uniforme, contraste faible, centre dégagé, aucun objet ni personnage (des combats auront lieu dessus)."},
+    {"fichier": "sol_forges", "taille": "1920x1080", "detourer": false,
+     "prompt": "Sol d'une salle de donjon vu strictement de dessus, remplissant tout le cadre : plaques de métal pourpre sombre et pierre volcanique, rigoles de lave rose et orange qui rougeoient dans les joints. Éclairage doux et uniforme, contraste faible, centre dégagé, aucun objet ni personnage (des combats auront lieu dessus)."},
+    {"fichier": "sol_neant", "taille": "1920x1080", "detourer": false,
+     "prompt": "Sol d'une salle de donjon vu strictement de dessus, remplissant tout le cadre : dalles d'obsidienne violet nuit flottant sur un vide étoilé, liserés d'or ancien et runes dorées très discrètes. Éclairage doux et uniforme, contraste faible, centre dégagé, aucun objet ni personnage (des combats auront lieu dessus)."},
+    {"fichier": "heros", "taille": "768x768", "detourer": true,
+     "prompt": "Le héros : guerrier de cristal cyan et blanc, armure facettée translucide, cœur lumineux dans la poitrine, épée de lumière, pose de combat dynamique."},
+    {"fichier": "ennemi_mite", "taille": "512x512", "detourer": true, "prompt": "Ennemi « mite » : petit insecte de cristal rouge #ff4d6d rapide et nerveux, ailes vibrantes, mandibules."},
+    {"fichier": "ennemi_spitter", "taille": "512x512", "detourer": true, "prompt": "Ennemi « cracheur » : limace-tourelle orange #ffa63d avec une bouche lumineuse qui crache des projectiles."},
+    {"fichier": "ennemi_bomber", "taille": "512x512", "detourer": true, "prompt": "Ennemi « kamikaze » : petite boule jaune #ffd23d instable, fissurée, mèche d'énergie qui crépite."},
+    {"fichier": "ennemi_splitter", "taille": "512x512", "detourer": true, "prompt": "Ennemi « scindeur » : blob vert #5dff9a gélatineux avec un noyau qui se divise, déjà presque coupé en deux."},
+    {"fichier": "ennemi_brute", "taille": "768x768", "detourer": true, "prompt": "Ennemi « brute » : golem massif rouge sang #ff3b3b fait de roche et de cristal, énormes poings, très imposant."},
+    {"fichier": "ennemi_weaver", "taille": "512x512", "detourer": true, "prompt": "Ennemi « tisseuse » : araignée mage violette #c77dff qui tisse des fils de lumière entre ses pattes."},
+    {"fichier": "ennemi_sentinel", "taille": "512x512", "detourer": true, "prompt": "Ennemi « sentinelle » : tour-œil rose #ff6bd6 en cristal, un grand œil central lumineux, base ancrée au sol."},
+    {"fichier": "archonte", "taille": "1024x1024", "detourer": true, "prompt": "Le boss « l'Archonte Fracturé » : colosse de cristal noir et violet brisé en éclats qui flottent autour de lui, yeux et fissures d'or ardent #ffd45a, couronne d'éclats, menaçant et majestueux."}
+  ]
+}

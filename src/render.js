@@ -5,6 +5,7 @@ import { BORDER, EDEF, H, PORTAL, ROMAN, TAU, W, ZONES } from './config.js';
 import { $, R, clamp, lerp, rint, rnd } from './util.js';
 import { TITLE, etat, game } from './state.js';
 import { AU } from './audio.js';
+import { ENEMY_ART, ZONE_ART, art } from './art.js';
 
 export const stage = $('stage');
 /** @type {HTMLCanvasElement} */
@@ -49,12 +50,19 @@ export function drawFloor() {
   const Z = ZONES[etat.room.z], g = fctx;
   g.setTransform(2, 0, 0, 2, 0, 0);
   g.fillStyle = Z.bg; g.fillRect(0, 0, W, H);
+  const sol = art(ZONE_ART[etat.room.z]);
   let gr = g.createRadialGradient(W / 2, H / 2, 40, W / 2, H / 2, 560);
-  gr.addColorStop(0, Z.floor + 'cc'); gr.addColorStop(1, Z.bg + '00');
-  g.fillStyle = gr; g.fillRect(0, 0, W, H);
-  // dalles en losange
-  g.strokeStyle = Z.acc + '14'; g.lineWidth = 1;
-  for (let i = -H; i < W + H; i += 48) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + H, H); g.stroke(); g.beginPath(); g.moveTo(i, H); g.lineTo(i + H, 0); g.stroke(); }
+  if (sol) {
+    // sol peint, assombri pour que les ennemis et projectiles ressortent
+    g.drawImage(sol, 0, 0, W, H);
+    g.fillStyle = Z.bg + '73'; g.fillRect(0, 0, W, H);
+  } else {
+    gr.addColorStop(0, Z.floor + 'cc'); gr.addColorStop(1, Z.bg + '00');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    // dalles en losange
+    g.strokeStyle = Z.acc + '14'; g.lineWidth = 1;
+    for (let i = -H; i < W + H; i += 48) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + H, H); g.stroke(); g.beginPath(); g.moveTo(i, H); g.lineTo(i + H, 0); g.stroke(); }
+  }
   // fissures lumineuses
   g.lineCap = 'round';
   for (let k = 0; k < 7; k++) {
@@ -269,24 +277,11 @@ function drawPlayer() {
   if (etat.P.nova >= 100) { glow(etat.P.x, etat.P.y, 60 + Math.sin(game.t * 8) * 6, '#ffd45a', .35); }
   ctx.globalCompositeOperation = 'source-over';
   if (blink) ctx.globalAlpha = .45;
-  // cape
-  const bob = Math.sin(etat.P.step) * 1.5, ca = etat.P.face + Math.PI, sp = Math.hypot(etat.P.vx, etat.P.vy) / 300;
-  ctx.fillStyle = '#16304a';
-  ctx.beginPath();
-  ctx.moveTo(etat.P.x + Math.cos(ca + 1.6) * 8, etat.P.y + Math.sin(ca + 1.6) * 8);
-  ctx.quadraticCurveTo(etat.P.x + Math.cos(ca) * (16 + sp * 10) + Math.sin(game.t * 9) * 2, etat.P.y + Math.sin(ca) * (16 + sp * 10), etat.P.x + Math.cos(ca - 1.6) * 8, etat.P.y + Math.sin(ca - 1.6) * 8);
-  ctx.fill();
-  // corps cristallin
-  ctx.save(); ctx.translate(etat.P.x, etat.P.y + bob * .3); ctx.rotate(etat.P.face + Math.PI / 2);
-  const g = ctx.createLinearGradient(0, -14, 0, 10); g.addColorStop(0, '#ffffff'); g.addColorStop(.5, '#9ffcf2'); g.addColorStop(1, '#2a8fa0');
-  ctx.fillStyle = etat.P.hurtT > 0 ? '#ff8095' : g;
-  ctx.beginPath(); ctx.moveTo(0, -15); ctx.lineTo(10, 3); ctx.lineTo(5, 10); ctx.lineTo(-5, 10); ctx.lineTo(-10, 3); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.2; ctx.stroke();
-  ctx.fillStyle = '#05202a'; ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(4, 1); ctx.lineTo(-4, 1); ctx.fill();
-  ctx.fillStyle = '#3ff3e0'; ctx.fillRect(-1.5, -3, 3, 3);
-  ctx.restore();
-  // lame au repos
-  if (!etat.slashes.length) {
+  const heros = art('heros');
+  if (heros) drawHeroArt(heros);
+  else drawHeroShape();
+  // lame au repos (le héros peint tient déjà la sienne)
+  if (!heros && !etat.slashes.length) {
     const a = etat.P.aim + .9, bx = etat.P.x + Math.cos(a) * 12, by = etat.P.y + Math.sin(a) * 12;
     ctx.strokeStyle = '#d9fffb'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(etat.P.aim) * 18, by + Math.sin(etat.P.aim) * 18); ctx.stroke();
@@ -309,6 +304,34 @@ function drawPlayer() {
     }
     ctx.globalCompositeOperation = 'source-over';
   }
+}
+/** Le héros peint : debout, tourné vers sa visée, avec un léger rebond de marche. */
+function drawHeroArt(img) {
+  const P = etat.P, sz = 46, bob = Math.abs(Math.sin(P.step)) * 2;
+  ctx.save(); ctx.translate(P.x, P.y - 6 - bob);
+  if (Math.cos(P.aim) < 0) ctx.scale(-1, 1);
+  ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz);
+  if (P.hurtT > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha *= .7; ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz); }
+  ctx.restore();
+}
+/** Le héros dessiné (repli sans visuel). */
+function drawHeroShape() {
+  // cape
+  const bob = Math.sin(etat.P.step) * 1.5, ca = etat.P.face + Math.PI, sp = Math.hypot(etat.P.vx, etat.P.vy) / 300;
+  ctx.fillStyle = '#16304a';
+  ctx.beginPath();
+  ctx.moveTo(etat.P.x + Math.cos(ca + 1.6) * 8, etat.P.y + Math.sin(ca + 1.6) * 8);
+  ctx.quadraticCurveTo(etat.P.x + Math.cos(ca) * (16 + sp * 10) + Math.sin(game.t * 9) * 2, etat.P.y + Math.sin(ca) * (16 + sp * 10), etat.P.x + Math.cos(ca - 1.6) * 8, etat.P.y + Math.sin(ca - 1.6) * 8);
+  ctx.fill();
+  // corps cristallin
+  ctx.save(); ctx.translate(etat.P.x, etat.P.y + bob * .3); ctx.rotate(etat.P.face + Math.PI / 2);
+  const g = ctx.createLinearGradient(0, -14, 0, 10); g.addColorStop(0, '#ffffff'); g.addColorStop(.5, '#9ffcf2'); g.addColorStop(1, '#2a8fa0');
+  ctx.fillStyle = etat.P.hurtT > 0 ? '#ff8095' : g;
+  ctx.beginPath(); ctx.moveTo(0, -15); ctx.lineTo(10, 3); ctx.lineTo(5, 10); ctx.lineTo(-5, 10); ctx.lineTo(-10, 3); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.fillStyle = '#05202a'; ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(4, 1); ctx.lineTo(-4, 1); ctx.fill();
+  ctx.fillStyle = '#3ff3e0'; ctx.fillRect(-1.5, -3, 3, 3);
+  ctx.restore();
 }
 function drawSlash(s) {
   const q = s.t / s.dur, a0 = s.a - s.arc / 2, sweep = s.arc * Math.min(1, q * 2.2);
@@ -336,6 +359,9 @@ function drawEnemy(e) {
   ctx.globalCompositeOperation = 'source-over';
   const body = fl ? '#ffffff' : e.col, dark = '#14060c';
   const face = Math.atan2(etat.P.y - e.y, etat.P.x - e.x);
+  const img = art(ENEMY_ART[e.type]);
+  if (img) drawEnemyArt(e, img, face, fl);
+  else {
   ctx.fillStyle = body; ctx.strokeStyle = fl ? '#fff' : '#ffffffaa'; ctx.lineWidth = 1.5;
   switch (e.type) {
     case 'mite': case 'mini': {
@@ -405,6 +431,7 @@ function drawEnemy(e) {
       break;
     }
   }
+  }
   ctx.restore();
   ctx.globalAlpha = 1;
   // barre de vie
@@ -414,6 +441,46 @@ function drawEnemy(e) {
     ctx.fillStyle = e.elite ? '#ffd45a' : '#ff4d6d'; ctx.fillRect(e.x - w / 2, e.y - e.r - 10, w * Math.max(0, e.hp / e.maxHp), 3);
   }
   if (e.elite) { ctx.strokeStyle = '#ffd45a88'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 6 + Math.sin(e.t * 5) * 2, 0, TAU); ctx.stroke(); }
+}
+/** Taille d'affichage des ennemis peints, en multiple du rayon de collision. */
+const ENEMY_SCALE = { mite: 3.4, mini: 3.4, spitter: 3.3, bomber: 3, splitter: 3.2, brute: 3.3, weaver: 3.6, sentinel: 3.4 };
+/**
+ * Un ennemi peint, debout et tourné vers le héros, avec les signaux de jeu
+ * (visée, mèche, charge, étourdissement, fondu) par-dessus.
+ * @param {any} e @param {HTMLImageElement} img @param {number} face @param {boolean} fl
+ */
+function drawEnemyArt(e, img, face, fl) {
+  const t = e.t, sz = e.r * (ENEMY_SCALE[e.type] || 2.8);
+  let k = 1, alpha = 1;
+  if (e.type === 'bomber' && e.st === 'fuse') {
+    k = 1 + Math.sin(t * 50) * .2;
+    ctx.strokeStyle = '#ff3d3d88'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, 85, 0, TAU); ctx.stroke();
+  }
+  if (e.type === 'brute' && e.st === 'wind') {
+    ctx.save(); ctx.rotate(e.a); ctx.fillStyle = '#ff3b3b22'; ctx.fillRect(0, -e.r, 300, e.r * 2);
+    ctx.strokeStyle = '#ff3b3b' + (Math.floor(t * 16) % 2 ? 'cc' : '55'); ctx.lineWidth = 2; ctx.strokeRect(0, -e.r, 300, e.r * 2); ctx.restore();
+    ctx.translate(rnd(-2, 2), rnd(-2, 2));
+  }
+  if (e.type === 'weaver') alpha = Math.max(.1, e.st === 'fade' ? e.stT / .4 : e.st === 'appear' ? 1 - e.stT / .35 : 1);
+  if (e.type === 'splitter' || e.type === 'mini') ctx.rotate(Math.sin(t * 2) * .15);
+  if (e.type === 'mite' || e.type === 'mini') ctx.translate(0, Math.sin(t * 20) * 1.5);
+  ctx.globalAlpha = alpha;
+  ctx.save(); ctx.scale(Math.cos(face) < 0 ? -k : k, k);
+  ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz);
+  // éclair blanc quand il est touché (ou mèche qui clignote)
+  const blink = fl || (e.type === 'bomber' && e.st === 'fuse' && Math.floor(t * 20) % 2);
+  if (blink) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha * .8; ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz); ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz); ctx.globalCompositeOperation = 'source-over'; }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  if (e.type === 'spitter' && e.st === 'aim') {
+    const ch = 1 - e.stT / .5;
+    ctx.globalCompositeOperation = 'lighter'; glow(Math.cos(face) * e.r * .6, Math.sin(face) * e.r * .6, 20 * ch + 6, '#ff3d7f', ch); ctx.globalCompositeOperation = 'source-over';
+  }
+  if (e.type === 'sentinel' && e.st === 'fire') { ctx.globalCompositeOperation = 'lighter'; glow(0, -e.r * .4, e.r * 1.4, '#ffffff', .7); ctx.globalCompositeOperation = 'source-over'; }
+  if (e.type === 'brute' && e.st === 'stun') {
+    ctx.rotate(t * 6); ctx.fillStyle = '#ffe14d';
+    for (let i = 0; i < 3; i++) { ctx.rotate(TAU / 3); ctx.fillRect(e.r * .9, -e.r - 2, 4, 4); }
+  }
 }
 function drawBoss(b) {
   const t = b.t, fl = b.flash > 0 || (b.invT > 0 && b.intro <= 0 && Math.floor(t * 12) % 2);
@@ -428,15 +495,31 @@ function drawBoss(b) {
   // anneau runique
   ctx.strokeStyle = pc + '88'; ctx.lineWidth = 2;
   ctx.save(); ctx.rotate(-t * .6); ctx.setLineDash([6, 10]); ctx.beginPath(); ctx.arc(0, 0, 78, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+  const img = art('archonte');
   // plaques orbitales
   for (let i = 0; i < b.plates; i++) {
-    const a = b.a + i / b.plates * TAU, r = 58 + Math.sin(t * 2 + i) * 4;
+    const a = b.a + i / b.plates * TAU, r = (img ? 80 : 58) + Math.sin(t * 2 + i) * 4;
     ctx.save(); ctx.rotate(a); ctx.translate(r, 0); ctx.rotate(Math.PI / 2);
     const g = ctx.createLinearGradient(0, -22, 0, 22); g.addColorStop(0, fl ? '#fff' : '#8e6cff'); g.addColorStop(1, fl ? '#fff' : '#2b1f5c');
     ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, -24); ctx.lineTo(12, 0); ctx.lineTo(0, 18); ctx.lineTo(-12, 0); ctx.closePath(); ctx.fill();
     ctx.strokeStyle = pc; ctx.lineWidth = 1.5; ctx.stroke();
     ctx.restore();
   }
+  if (img) {
+    // l'Archonte peint, qui flotte ; il se fissure (lueur de phase) et clignote sous les coups
+    const sz = 150, fy = Math.sin(t * 1.6) * 4;
+    ctx.save(); ctx.translate(0, fy - 8);
+    if (Math.cos(b.eye) < 0) ctx.scale(-1, 1);
+    ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz);
+    if (fl || ph >= 2) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = fl ? .9 : (ph - 1) * .12 + Math.sin(t * 6) * .05;
+      ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz);
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+    ctx.restore();
+  } else {
   // noyau
   ctx.rotate(Math.sin(t) * .1);
   const g = ctx.createRadialGradient(0, -8, 4, 0, 0, 42); g.addColorStop(0, fl ? '#fff' : '#fff6d0'); g.addColorStop(.4, fl ? '#fff' : pc); g.addColorStop(1, fl ? '#fff' : '#3a1a5c');
@@ -453,6 +536,7 @@ function drawBoss(b) {
   ctx.fillStyle = b.atk ? '#ff4d6d' : '#ffffff'; ctx.beginPath(); ctx.arc(ex, ey, 7, 0, TAU); ctx.fill();
   ctx.fillStyle = '#0b0618'; ctx.beginPath(); ctx.ellipse(ex, ey, 2, 5, 0, 0, TAU); ctx.fill();
   ctx.restore();
+  }
   // ligne de charge
   if (b.atk === 'charge' && b.cst === 'wind') {
     ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.ca);
@@ -602,6 +686,13 @@ function drawTrans() {
 function renderTitle() {
   ctx.fillStyle = '#03080b'; ctx.fillRect(0, 0, W, H);
   const cx = W / 2, cy = H / 2, t = game.t;
+  const titre = art('titre');
+  if (titre) {
+    // tableau peint, en léger zoom lent, assombri sous le logo
+    const z = 1.04 + Math.sin(t * .15) * .02, iw = W * z, ih = iw * titre.height / titre.width;
+    ctx.drawImage(titre, cx - iw / 2, cy - ih / 2, iw, ih);
+    ctx.fillStyle = '#03080b40'; ctx.fillRect(0, 0, W, H);
+  }
   ctx.globalCompositeOperation = 'lighter';
   glow(cx, cy, 380, '#0f5a64', .5);
   glow(cx, cy, 160 + Math.sin(t) * 10, '#ff4d8d', .18);
@@ -612,11 +703,11 @@ function renderTitle() {
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x2, y2); ctx.stroke();
   }
   ctx.globalAlpha = 1;
-  // la faille
-  ctx.strokeStyle = '#3ff3e0'; ctx.lineWidth = 3;
+  // la faille (le tableau peint a déjà la sienne)
+  ctx.strokeStyle = '#3ff3e0'; ctx.lineWidth = 3; ctx.globalAlpha = titre ? 0 : 1;
   ctx.beginPath(); ctx.moveTo(cx - 260, cy + 40);
   for (let i = 1; i <= 12; i++) ctx.lineTo(cx - 260 + i * 43, cy + 40 + Math.sin(i * 2.3 + t * 2) * 10 + (i % 2 ? -14 : 12));
-  ctx.stroke();
+  ctx.stroke(); ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
   const g = ctx.createRadialGradient(cx, cy, 200, cx, cy, 620); g.addColorStop(0, '#0000'); g.addColorStop(1, '#000c');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);

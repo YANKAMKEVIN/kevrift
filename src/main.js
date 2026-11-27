@@ -1,6 +1,6 @@
 // @ts-check
 /** Point d'entrée : boucle de jeu. */
-import { render, resize } from './render.js';
+import { drawFloor, render, resize } from './render.js';
 import { seed, clamp } from './util.js';
 import { hitEnemy } from './combat.js';
 import { pollPad } from './input.js';
@@ -9,11 +9,14 @@ import { UPS } from './ups.js';
 import { advance, newRun, takeUp } from './rooms.js';
 import { updTitle, update } from './update.js';
 import { togglePause } from './ui.js';
+import { loadArt } from './art.js';
 
 // ?graine=N : partie reproductible ; ?turbo=N : N images de jeu par image affichée (tests)
 const Q = new URLSearchParams(location.search);
 if (Q.has('graine')) seed(+(Q.get('graine') || 0));
 const TURBO = clamp(Math.floor(+(Q.get('turbo') || 1)) || 1, 1, 20);
+// visuels peints : le sol de la salle en cours est redessiné dès qu'ils arrivent
+loadArt().then(n => { if (etat.room) drawFloor(); /** @type {any} */ (window).__kev.art = n; });
 addEventListener('resize', resize);
 resize();
 function frame(now) {
