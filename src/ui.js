@@ -3,13 +3,14 @@
 import { CFG, save, persist, recordRun } from './save.js';
 import { $, fmtT, svgIcon } from './util.js';
 import { AU } from './audio.js';
-import { IN, etat, fx, game, keys } from './state.js';
+import { IN, etat, fx, game, keys, leaveRun, music } from './sim/state.js';
+import { view } from './render/view.js';
 import { touchUI } from './input.js';
 import { RAR, ROMAN, VERSION } from './config.js';
-import { UPS } from './ups.js';
-import { drawFloor } from './render.js';
-import { newRun, openPortals, rollUps, takeUp } from './rooms.js';
-import { heal } from './combat.js';
+import { UPS } from './sim/ups.js';
+import { drawFloor } from './render/floor.js';
+import { newRun, openPortals, rollUps, takeUp } from './sim/rooms.js';
+import { heal } from './sim/combat.js';
 
 function cardHTML(u, extra = '') {
   const lv = game.taken[u.id] || 0;
@@ -72,9 +73,9 @@ export function togglePause() {
   if (game.state === 'play' && !etat.P.dead && !game.trans) {
     game.state = 'pause'; renderUps($('pUps')); showOv('oPause'); for (const k in keys) keys[k] = false; IN.mouse.l = IN.mouse.r = false;
   } else if (game.state === 'pause') {
-    game.state = 'play'; showOv(null); etat.lastT = performance.now();
+    game.state = 'play'; showOv(null); view.lastT = performance.now();
   } else if (['oHelp', 'oSet'].some(o => $(o).classList.contains('on'))) {
-    showOv(etat.ovBack);
+    showOv(view.ovBack);
   }
 }
 function renderUps(el) {
@@ -83,7 +84,7 @@ function renderUps(el) {
 }
 function endRun(won) {
   if (game.state === 'over') return;
-  game.state = 'over'; AU.target = 0;
+  game.state = 'over'; music.target = 0;
   $('endT').textContent = won ? 'La Faille est scellée' : 'La Faille t\'a englouti';
   $('endT').className = won ? 'gold' : 'red';
   $('endS').textContent = won ? 'L\'Archonte Fracturé n\'est plus. Tu remontes vers la lumière, chargé d\'éclats.' : (etat.boss ? 'Si près du but. L\'Archonte t\'attend pour la revanche.' : 'Tu es tombé dans la strate ' + ROMAN[etat.room.z] + '. Chaque plongée est différente : retente ta chance.');
@@ -102,13 +103,13 @@ function showBest() {
 showBest();
 $('bPlay').onclick = () => { AU.init(); newRun(); };
 $('bAgain').onclick = () => { AU.init(); newRun(); };
-$('bMenu').onclick = () => { game.state = 'title'; etat.room = null; AU.target = 0; AU.zone = 0; showOv('oTitle'); };
-$('bHelp').onclick = () => { etat.ovBack = 'oTitle'; showOv('oHelp'); };
-$('bHelpP').onclick = () => { etat.ovBack = 'oPause'; showOv('oHelp'); };
-$('bSetT').onclick = () => { etat.ovBack = 'oTitle'; showOv('oSet'); };
-$('bSetP').onclick = () => { etat.ovBack = 'oPause'; showOv('oSet'); };
-$('bHelpBack').onclick = () => showOv(etat.ovBack);
-$('bSetBack').onclick = () => showOv(etat.ovBack);
+$('bMenu').onclick = () => { leaveRun(); showOv('oTitle'); };
+$('bHelp').onclick = () => { view.ovBack = 'oTitle'; showOv('oHelp'); };
+$('bHelpP').onclick = () => { view.ovBack = 'oPause'; showOv('oHelp'); };
+$('bSetT').onclick = () => { view.ovBack = 'oTitle'; showOv('oSet'); };
+$('bSetP').onclick = () => { view.ovBack = 'oPause'; showOv('oSet'); };
+$('bHelpBack').onclick = () => showOv(view.ovBack);
+$('bSetBack').onclick = () => showOv(view.ovBack);
 $('bResume').onclick = () => togglePause();
 $('bQuit').onclick = () => { etat.P.dead = true; endRun(false); };
 $('vMus').value = CFG.mus;

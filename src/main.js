@@ -1,13 +1,17 @@
 // @ts-check
-/** Point d'entrée : boucle de jeu. */
-import { drawFloor, render, resize } from './render.js';
-import { seed, clamp } from './util.js';
-import { hitEnemy } from './combat.js';
+/** Point d'entrée : boucle de jeu (simulation à pas fixe découplée de l'affichage). */
+import { resize } from './render/canvas.js';
+import { drawFloor } from './render/floor.js';
+import { render } from './render/world.js';
+import { updTitle } from './render/title.js';
+import { view } from './render/view.js';
+import { clamp, seed } from './sim/math.js';
+import { hitEnemy } from './sim/combat.js';
 import { pollPad } from './input.js';
-import { etat, game } from './state.js';
-import { UPS } from './ups.js';
-import { advance, newRun, takeUp } from './rooms.js';
-import { updTitle, update } from './update.js';
+import { etat, game } from './sim/state.js';
+import { UPS } from './sim/ups.js';
+import { advance, newRun, takeUp } from './sim/rooms.js';
+import { update } from './sim/update.js';
 import { togglePause } from './ui.js';
 import { loadArt } from './art.js';
 
@@ -19,8 +23,12 @@ const TURBO = clamp(Math.floor(+(Q.get('turbo') || 1)) || 1, 1, 20);
 loadArt().then(n => { if (etat.room) drawFloor(); /** @type {any} */ (window).__kev.art = n; });
 addEventListener('resize', resize);
 resize();
+
+let running = false;
+/** @param {number} now */
 function frame(now) {
-  let dt = Math.min(.033, (now - etat.lastT) / 1000); etat.lastT = now;
+  if (document.hidden) { running = false; return; } // onglet caché : plus aucune image (batterie)
+  const dt = Math.min(.033, (now - view.lastT) / 1000); view.lastT = now;
   const st = pollPad(dt);
   game.t += dt;
   if (game.state === 'play') for (let i = 0; i < TURBO && game.state === 'play'; i++) update(dt, st);
@@ -28,7 +36,15 @@ function frame(now) {
   render();
   requestAnimationFrame(frame);
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden && game.state === 'play') togglePause(); });
+function start() {
+  if (running) return;
+  running = true; view.lastT = performance.now();
+  requestAnimationFrame(frame);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { if (game.state === 'play') togglePause(); }
+  else start();
+});
 /** Accès pour les tests de navigateur. */
-/** @type {any} */ (window).__kev = { game, hitEnemy, get P() { return etat.P; }, get S() { return etat.S; }, get enemies() { return etat.enemies; }, get room() { return etat.room; }, newRun, advance, takeUp, UPS, get boss() { return etat.boss; }, get portals() { return etat.portals; }, set roomNum(v) { etat.roomNum = v; }, set stageIdx(v) { etat.stageIdx = v; }, set roomInStage(v) { etat.roomInStage = v; } };
-requestAnimationFrame(frame);
+/** @type {any} */ (window).__kev = { game, hitEnemy, get P() { return etat.P; }, get S() { return etat.S; }, get enemies() { return etat.enemies; }, get room() { return etat.room; }, newRun, advance, takeUp, UPS, get boss() { return etat.boss; }, get portals() { return etat.portals; }, set roomNum(v) { etat.roomNum = v; }, set stageIdx(v) { etat.stageIdx = v; }, set roomInStage(v) { etat.roomInStage = v; }, get running() { return running; } };
+start();

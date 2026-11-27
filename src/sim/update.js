@@ -1,15 +1,17 @@
 // @ts-check
 /** Une image de jeu : héros, projectiles, zones, salle terminée. Sans DOM : testé sous Node. */
-import { BORDER, H, TAU, W, ZONES } from './config.js';
-import { R, angDiff, clamp, lerp, pick, rnd } from './util.js';
-import { AU } from './audio.js';
-import { IN, T, TITLE, etat, fx, game, keys, pressed } from './state.js';
+import { BORDER, H, TAU, W, ZONES } from '../config.js';
+import { R, angDiff, clamp, compact, count, lerp, pick, rnd } from './math.js';
+import { IN, T, etat, fx, game, keys, music, pressed, scheduleEnd, sfx } from './state.js';
 import { advance, enterPortal, roomCleared, solidAt } from './rooms.js';
 import { burst, flare, flash, ring, shake, txt } from './effects.js';
 import { aimDir, attack, dash, doNova, eShoot, explode, heal, hitEnemy, hurtPlayer, makeEnemy, moveCircle, shoot, spawnWave, updEnemy } from './combat.js';
 import { bossDeath, updBoss } from './boss.js';
 
+/** Avance la simulation d'une image.
+ * @param {number} rdt durée réelle de l'image (secondes) @param {import('./state.js').PadState|null} st manette */
 export function update(rdt, st) {
+  if (game.endT > 0) { game.endT -= rdt; if (game.endT <= 0) { game.endT = 0; fx.end(game.endWon); return; } }
   if (game.hitstop > 0) { game.hitstop -= rdt; updFx(rdt * .15); return; }
   if (game.slowT > 0) { game.slowT -= rdt; if (game.slowT <= 0) game.slow = 1; }
   const wdt = rdt * game.slow;          // temps du monde
@@ -82,12 +84,12 @@ export function update(rdt, st) {
   // ---------- salle : vagues ----------
   if (etat.room.type === 'combat' || etat.room.type === 'defi') {
     if (!etat.room.cleared) {
-      const alive = etat.enemies.filter(e => !e.dead).length + etat.spawners.length;
+      const alive = count(etat.enemies, e => !e.dead) + etat.spawners.length;
       if (alive === 0) {
         etat.room.waveT -= wdt;
         if (etat.room.waveT <= 0) {
           etat.room.wave++;
-          if (etat.room.wave < etat.room.waves.length) { spawnWave(etat.room.waves[etat.room.wave]); etat.room.waveT = .7; AU.target = 1; }
+          if (etat.room.wave < etat.room.waves.length) { spawnWave(etat.room.waves[etat.room.wave]); etat.room.waveT = .7; music.target = 1; }
           else roomCleared();
         }
       }
@@ -99,7 +101,7 @@ export function update(rdt, st) {
   }
   if (etat.room.type === 'shop' && etat.room.obj && !etat.room.obj.used) { etat.room.obj.t += rdt; if (etat.room.obj.t > .9 && Math.hypot(etat.P.x - etat.room.obj.x, etat.P.y - etat.room.obj.y) < 70) { etat.room.obj.used = true; fx.shop(); } }
   if (etat.room.type === 'fountain' && etat.room.obj && !etat.room.obj.used && Math.hypot(etat.P.x - etat.room.obj.x, etat.P.y - etat.room.obj.y) < 50) {
-    etat.room.obj.used = true; heal(45); AU.play('heal'); ring(etat.room.obj.x, etat.room.obj.y, '#6dffb0', 10, 140, .6, 6); burst(etat.room.obj.x, etat.room.obj.y, '#6dffb0', 30, 260, .8, 'shard');
+    etat.room.obj.used = true; heal(45); sfx.play('heal'); ring(etat.room.obj.x, etat.room.obj.y, '#6dffb0', 10, 140, .6, 6); burst(etat.room.obj.x, etat.room.obj.y, '#6dffb0', 30, 260, .8, 'shard');
   }
 
   // apparitions
@@ -107,7 +109,7 @@ export function update(rdt, st) {
     s.t -= wdt;
     if (s.t <= 0) { const e = makeEnemy(s.type, s.x, s.y, s.elite); etat.enemies.push(e); burst(s.x, s.y, e.col, 14, 220, .4); ring(s.x, s.y, e.col, 4, 40, .3, 3); s.done = true; if (s.elite) { txt(s.x, s.y - 30, 'CHAMPION', '#ffd45a', true); shake(6); } }
   }
-  etat.spawners = etat.spawners.filter(s => !s.done);
+  compact(etat.spawners, s => !s.done);
 
   // ennemis
   for (const e of etat.enemies) { if (e.dead) continue; if (e.type === 'boss') updBoss(wdt); else updEnemy(e, wdt); }
@@ -115,17 +117,17 @@ export function update(rdt, st) {
   if (etat.boss && etat.boss.deathT > 0) {
     etat.boss.deathT -= rdt;
     if (R.f() < .5) { burst(etat.boss.x + rnd(-40, 40), etat.boss.y + rnd(-40, 40), pick(['#ffd45a', '#c77dff', '#ffffff']), 8, 300, .6, 'shard'); }
-    if (R.f() < .12) { AU.play('boom'); shake(8); ring(etat.boss.x + rnd(-30, 30), etat.boss.y + rnd(-30, 30), '#ffd45a', 10, 90, .4, 5); }
+    if (R.f() < .12) { sfx.play('boom'); shake(8); ring(etat.boss.x + rnd(-30, 30), etat.boss.y + rnd(-30, 30), '#ffd45a', 10, 90, .4, 5); }
     if (etat.boss.deathT <= 0) {
-      etat.boss.dead = true; flash('#ffffff', 1); shake(24); AU.play('nova');
+      etat.boss.dead = true; flash('#ffffff', 1); shake(24); sfx.play('nova');
       burst(etat.boss.x, etat.boss.y, '#ffd45a', 80, 700, 1.4, 'shard'); burst(etat.boss.x, etat.boss.y, '#c77dff', 60, 500, 1.2, 'shard'); ring(etat.boss.x, etat.boss.y, '#ffffff', 20, 700, 1.2, 14);
       for (let i = 0; i < 60; i++) etat.picks.push({ k: 'shard', x: etat.boss.x, y: etat.boss.y, vx: rnd(-300, 300), vy: rnd(-300, 300), t: 0, mag: 1 });
-      setTimeout(() => fx.end(true), 2200);
+      scheduleEnd(true, 2.2);
       etat.boss.deathT = -1;
     }
   }
-  etat.enemies = etat.enemies.filter(e => !e.dead || (e === etat.boss && etat.boss.deathT !== -1 && !etat.boss.dead));
-  if (etat.boss && etat.boss.dead) etat.enemies = etat.enemies.filter(e => e !== etat.boss);
+  compact(etat.enemies, e => !e.dead || (e === etat.boss && etat.boss.deathT !== -1 && !etat.boss.dead));
+  if (etat.boss && etat.boss.dead) compact(etat.enemies, e => e !== etat.boss);
 
   // projectiles ennemis
   for (const b of etat.bullets) {
@@ -133,7 +135,7 @@ export function update(rdt, st) {
     if (b.life <= 0 || solidAt(b.x, b.y, 2)) { b.dead = true; burst(b.x, b.y, b.col, 3, 90, .2); continue; }
     if (!etat.P.dead && Math.hypot(b.x - etat.P.x, b.y - etat.P.y) < b.r + etat.P.r - 3) { if (hurtPlayer(b.dmg, b.x - b.vx, b.y - b.vy) || etat.P.inv > 0) { if (etat.P.dashT <= 0) b.dead = true; } }
   }
-  etat.bullets = etat.bullets.filter(b => !b.dead);
+  compact(etat.bullets, b => !b.dead);
 
   // projectiles du héros
   for (const p of etat.projs) {
@@ -157,7 +159,7 @@ export function update(rdt, st) {
       }
     }
   }
-  etat.projs = etat.projs.filter(p => !p.dead);
+  compact(etat.projs, p => !p.dead);
 
   // feux, zones, évents
   for (const f of etat.fires) {
@@ -165,7 +167,7 @@ export function update(rdt, st) {
     for (const e of etat.enemies) if (!e.dead && e.spawnT <= 0 && Math.hypot(e.x - f.x, e.y - f.y) < f.r + e.r) { e.burnCd = (e.burnCd || 0) - wdt; if (e.burnCd <= 0) { e.burnCd = .3; hitEnemy(e, Math.round(etat.S.dmg * .45), 0, 0, { kb: 0, nochain: 1, quiet: 1, nova: .3 }); } }
     if (R.f() < .3) etat.parts.push({ k: 'dot', x: f.x + rnd(-10, 10), y: f.y + rnd(-10, 10), vy: -40, life: .4, max: .4, col: '#ff8a3d', sz: 4 });
   }
-  etat.fires = etat.fires.filter(f => f.t > 0);
+  compact(etat.fires, f => f.t > 0);
   for (const z of etat.zones) {
     z.t -= wdt;
     if (z.t <= 0 && !z.done) {
@@ -174,10 +176,10 @@ export function update(rdt, st) {
       if (z.k === 'drop') { explode(z.x, z.y, z.r, 18, 0, '#ffd45a', true); for (let i = 0; i < 6; i++) eShoot(z.x, z.y, i / 6 * TAU + rnd(), 130, '#ffd45a', 5, 10); }
     }
   }
-  etat.zones = etat.zones.filter(z => !z.done);
+  compact(etat.zones, z => !z.done);
   for (const v of etat.room.vents) {
     v.t += wdt; const c = v.t % 3.2;
-    if (c > 2.5 && c - wdt <= 2.5) { AU.play('boom'); burst(v.x, v.y, ZONES[etat.room.z].haz, 18, 260, .5); ring(v.x, v.y, ZONES[etat.room.z].haz, 6, v.r * 1.4, .3, 5); }
+    if (c > 2.5 && c - wdt <= 2.5) { sfx.play('boom'); burst(v.x, v.y, ZONES[etat.room.z].haz, 18, 260, .5); ring(v.x, v.y, ZONES[etat.room.z].haz, 6, v.r * 1.4, .3, 5); }
     if (c > 2.5 && c < 3.0) {
       if (Math.hypot(etat.P.x - v.x, etat.P.y - v.y) < v.r + etat.P.r - 4) hurtPlayer(15, v.x, v.y);
       for (const e of etat.enemies) if (!e.dead && e.type !== 'boss' && Math.hypot(e.x - v.x, e.y - v.y) < v.r + e.r) { e.ventCd = (e.ventCd || 0) - wdt; if (e.ventCd <= 0) { e.ventCd = .5; hitEnemy(e, 25, e.x - v.x, e.y - v.y, { nochain: 1, quiet: 1, fixed: 1, nova: 0 }); } }
@@ -194,11 +196,11 @@ export function update(rdt, st) {
     p.x = clamp(p.x, BORDER + 6, W - BORDER - 6); p.y = clamp(p.y, BORDER + 6, H - BORDER - 6);
     if (d < etat.P.r + 10 && !etat.P.dead) {
       p.dead = true;
-      if (p.k === 'shard') { game.shards++; AU.play('pickup', 1 + (game.shards % 8) * .06); flare(etat.P.x, etat.P.y, '#3ff3e0', 18, .15); }
-      else { heal(12); AU.play('heal'); ring(etat.P.x, etat.P.y, '#6dffb0', 8, 40, .3, 3); }
+      if (p.k === 'shard') { game.shards++; sfx.play('pickup', 1 + (game.shards % 8) * .06); flare(etat.P.x, etat.P.y, '#3ff3e0', 18, .15); }
+      else { heal(12); sfx.play('heal'); ring(etat.P.x, etat.P.y, '#6dffb0', 8, 40, .3, 3); }
     }
   }
-  etat.picks = etat.picks.filter(p => !p.dead);
+  compact(etat.picks, p => !p.dead);
 
   // portails
   for (const p of etat.portals) {
@@ -213,18 +215,14 @@ function updFx(dt) {
     p.life -= dt;
     if (p.k === 'spark' || p.k === 'shard' || p.k === 'dot') { p.x += (p.vx || 0) * dt; p.y += (p.vy || 0) * dt; if (p.vx) { p.vx *= Math.pow(.03, dt); p.vy *= Math.pow(.03, dt); } p.rot += (p.vr || 0) * dt; }
   }
-  etat.parts = etat.parts.filter(p => p.life > 0);
+  compact(etat.parts, p => p.life > 0);
   for (const t of etat.texts) t.t += dt;
-  etat.texts = etat.texts.filter(t => t.t < .8);
+  compact(etat.texts, t => t.t < .8);
   for (const s of etat.slashes) s.t += dt;
-  etat.slashes = etat.slashes.filter(s => s.t < s.dur);
+  compact(etat.slashes, s => s.t < s.dur);
   for (const b of etat.bolts) b.life -= dt;
-  etat.bolts = etat.bolts.filter(b => b.life > 0);
+  compact(etat.bolts, b => b.life > 0);
   game.shake = Math.max(0, game.shake - dt * 60);
   game.flash = Math.max(0, game.flash - dt * 2.5);
   if (game.banner) { game.banner.life -= dt; if (game.banner.life <= 0) game.banner = null; }
-}
-export function updTitle(dt) {
-  if (TITLE.pts.length < 140) TITLE.pts.push({ a: rnd(TAU), r: rnd(20, 60), s: rnd(.3, 1.2), z: rnd(), c: pick(['#3ff3e0', '#ff4d8d', '#ffd45a', '#c77dff']) });
-  for (const p of TITLE.pts) { p.r += dt * 60 * p.s * (1 + p.r / 200); p.a += dt * .3 * p.s; if (p.r > 700) { p.r = rnd(10, 40); p.a = rnd(TAU); } }
 }

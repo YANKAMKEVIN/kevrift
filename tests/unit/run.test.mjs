@@ -1,18 +1,16 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { etat, game, assistedRun, start, run, wireUi, keys, pressed, DT } from './helpers.mjs';
 import { PLAN, BOSS_HP } from '../../src/config.js';
-import { UPS } from '../../src/ups.js';
-import { rollUps, takeUp, planWaves, solidAt } from '../../src/rooms.js';
-import { hurtPlayer, heal, makeEnemy, hitEnemy } from '../../src/combat.js';
-import { update } from '../../src/update.js';
+import { UPS } from '../../src/sim/ups.js';
+import { rollUps, takeUp, planWaves, solidAt } from '../../src/sim/rooms.js';
+import { hurtPlayer, heal, makeEnemy, hitEnemy } from '../../src/sim/combat.js';
+import { update } from '../../src/sim/update.js';
 
 const ROOMS = PLAN.reduce((a, p) => a + p[1], 0);
 
-test('plongée complète : 3 strates, toutes les salles, le boss vaincu, écran de victoire', async () => {
+test('plongée complète : 3 strates, toutes les salles, le boss vaincu, écran de victoire', () => {
   const { log, rooms } = assistedRun(7);
-  // le message de fin arrive après une courte mise en scène (setTimeout)
-  await new Promise(r => setTimeout(r, 2400));
   assert.equal(game.ended, true, `journal : ${log.join(' ')}`);
   assert.equal(rooms.at(-1), 'boss');
   assert.equal(rooms.length, ROOMS + 1, `salles : ${rooms.join(' ')}`);
@@ -22,11 +20,9 @@ test('plongée complète : 3 strates, toutes les salles, le boss vaincu, écran 
   assert.ok(etat.boss.dead);
 });
 
-test('la même graine donne la même plongée', async () => {
+test('la même graine donne la même plongée', () => {
   const a = assistedRun(42).rooms.join();
-  await new Promise(r => setTimeout(r, 2400));
   const b = assistedRun(42).rooms.join();
-  await new Promise(r => setTimeout(r, 2400));
   assert.equal(a, b);
 });
 

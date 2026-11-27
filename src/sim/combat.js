@@ -1,9 +1,8 @@
 // @ts-check
 /** Combat : coups et tirs du héros, dégâts, ennemis et leur comportement. Sans DOM. */
-import { BORDER, EDEF, H, TAU, W } from './config.js';
-import { R, angDiff, clamp, lerp, rnd } from './util.js';
-import { AU } from './audio.js';
-import { IN, etat, fx, game } from './state.js';
+import { BORDER, EDEF, H, TAU, W } from '../config.js';
+import { R, angDiff, clamp, lerp, rnd } from './math.js';
+import { IN, etat, game, music, scheduleEnd, sfx } from './state.js';
 import { freeSpot, rectHit, solidAt } from './rooms.js';
 import { banner, burst, flare, flash, ring, shake, stop, txt } from './effects.js';
 
@@ -17,12 +16,12 @@ export function heal(n) {
 export function hurtPlayer(dmg, sx, sy) {
   if (etat.P.inv > 0 || etat.P.dashT > 0 || etat.P.dead || game.state !== 'play') return false;
   if (etat.S.shield && etat.P.shieldT <= 0) {
-    etat.P.shieldT = 10; etat.P.inv = .6; AU.play('shield'); ring(etat.P.x, etat.P.y, '#8fe9ff', 10, 60, .4, 5); burst(etat.P.x, etat.P.y, '#8fe9ff', 16, 250, .4, 'shard'); txt(etat.P.x, etat.P.y - 24, 'BLOQUÉ', '#8fe9ff');
+    etat.P.shieldT = 10; etat.P.inv = .6; sfx.play('shield'); ring(etat.P.x, etat.P.y, '#8fe9ff', 10, 60, .4, 5); burst(etat.P.x, etat.P.y, '#8fe9ff', 16, 250, .4, 'shard'); txt(etat.P.x, etat.P.y - 24, 'BLOQUÉ', '#8fe9ff');
     return false;
   }
   etat.P.hp -= dmg; etat.P.inv = .9; etat.P.hurtT = .3;
   const a = Math.atan2(etat.P.y - sy, etat.P.x - sx); etat.P.vx += Math.cos(a) * 320; etat.P.vy += Math.sin(a) * 320;
-  AU.play('hurt'); shake(12); stop(.09); flash('#ff2d55', .45);
+  sfx.play('hurt'); shake(12); stop(.09); flash('#ff2d55', .45);
   burst(etat.P.x, etat.P.y, '#ff4d6d', 18, 300, .5);
   txt(etat.P.x, etat.P.y - 20, '-' + dmg, '#ff5a7a', true);
   if (etat.S.thorns) { ring(etat.P.x, etat.P.y, '#8fe9ff', 10, 110, .35, 6); for (const e of etat.enemies) if (Math.hypot(e.x - etat.P.x, e.y - etat.P.y) < 110 + e.r) hitEnemy(e, etat.S.thorns, e.x - etat.P.x, e.y - etat.P.y, { nochain: 1 }); }
@@ -35,9 +34,9 @@ export function hurtPlayer(dmg, sx, sy) {
   return true;
 }
 function die() {
-  etat.P.dead = true; game.slow = .25; game.slowT = 1.6; AU.target = 0;
+  etat.P.dead = true; game.slow = .25; game.slowT = 1.6; music.target = 0;
   burst(etat.P.x, etat.P.y, '#ffffff', 40, 400, 1, 'shard'); ring(etat.P.x, etat.P.y, '#ff4d6d', 10, 260, .9, 8); shake(20);
-  setTimeout(() => fx.end(false), 1500);
+  scheduleEnd(false, 1.5);
 }
 function critRoll(base) { const c = R.f() < etat.S.crit; return { v: Math.round(base * (c ? 2.2 : 1) * rnd(.92, 1.08)), c }; }
 export function hitEnemy(e, dmg, kx, ky, o = {}) {
@@ -51,13 +50,13 @@ export function hitEnemy(e, dmg, kx, ky, o = {}) {
   e.sq = .25;
   if (etat.S.frost && !o.nochain) e.slow = 2;
   txt(e.x, e.y - e.r - 6, v + (c ? '!' : ''), c ? '#ffd45a' : '#ffffff', c);
-  if (!o.quiet) { burst(e.x, e.y, c ? '#ffd45a' : e.col, c ? 10 : 6, 220, .3); AU.play(c ? 'crit' : 'hit', rnd(.9, 1.15)); }
+  if (!o.quiet) { burst(e.x, e.y, c ? '#ffd45a' : e.col, c ? 10 : 6, 220, .3); sfx.play(c ? 'crit' : 'hit', rnd(.9, 1.15)); }
   etat.P.nova = Math.min(100, etat.P.nova + (o.nova === undefined ? 2.4 : o.nova) * etat.S.novaRate);
   if (!o.nochain && etat.S.chain && R.f() < etat.S.chain) chainZap(e, 3, Math.round(etat.S.dmg * .9));
   if (e.hp <= 0) killEnemy(e);
 }
 function chainZap(from, n, dmg) {
-  let cur = from; const hit = new Set([from]); AU.play('zap');
+  let cur = from; const hit = new Set([from]); sfx.play('zap');
   for (let i = 0; i < n; i++) {
     let best = null, bd = 190;
     for (const e of etat.enemies) { if (hit.has(e) || e.dead || e.spawnT > 0) continue; const d = Math.hypot(e.x - cur.x, e.y - cur.y); if (d < bd) { bd = d; best = e; } }
@@ -73,7 +72,7 @@ export function killEnemy(e) {
   burst(e.x, e.y, e.col, big ? 26 : 16, big ? 340 : 280, .6, 'shard');
   burst(e.x, e.y, '#ffffff', 6, 200, .25);
   ring(e.x, e.y, e.col, e.r, e.r * 3.5, .35, 3); flare(e.x, e.y, e.col, e.r * 5, .3);
-  AU.play('kill', big ? .7 : rnd(.9, 1.2)); stop(big ? .07 : .035); shake(big ? 7 : 3);
+  sfx.play('kill', big ? .7 : rnd(.9, 1.2)); stop(big ? .07 : .035); shake(big ? 7 : 3);
   if (e.type === 'boss') return;
   let n = EDEF[e.type].shards * (e.elite ? 5 : 1);
   for (let i = 0; i < n; i++) etat.picks.push({ k: 'shard', x: e.x, y: e.y, vx: rnd(-140, 140), vy: rnd(-140, 140), t: 0 });
@@ -86,7 +85,7 @@ export function killEnemy(e) {
 }
 export function explode(x, y, r, pd, ed, col, small) {
   ring(x, y, col, 8, r, .35, 6); flare(x, y, col, r * 1.8, .3); burst(x, y, col, small ? 10 : 22, r * 4, .45);
-  AU.play('boom'); shake(small ? 4 : 9);
+  sfx.play('boom'); shake(small ? 4 : 9);
   if (pd && Math.hypot(etat.P.x - x, etat.P.y - y) < r + etat.P.r) hurtPlayer(pd, x, y);
   if (ed) for (const e of etat.enemies) if (!e.dead && Math.hypot(e.x - x, e.y - y) < r + e.r) hitEnemy(e, Math.round(ed), e.x - x, e.y - y, { nochain: 1, quiet: 1, fixed: 1, nova: .5 });
 }
@@ -111,7 +110,7 @@ export function attack() {
   const a = etat.P.aim, range = etat.S.range * (heavy ? 1.2 : 1), arc = heavy ? 2.6 : 2.0;
   etat.slashes.push({ x: etat.P.x, y: etat.P.y, a, range, arc, t: 0, dur: heavy ? .2 : .15, step });
   etat.P.vx += Math.cos(a) * (heavy ? 260 : 150); etat.P.vy += Math.sin(a) * (heavy ? 260 : 150);
-  AU.play(heavy ? 'slash3' : 'slash', 1 + step * .12);
+  sfx.play(heavy ? 'slash3' : 'slash', 1 + step * .12);
   const dmg = etat.S.dmg * (heavy ? 1.8 : 1);
   let hitAny = false;
   for (const e of etat.enemies) {
@@ -132,7 +131,7 @@ export function attack() {
     etat.projs.push({ x: b.x, y: b.y, vx: Math.cos(na) * sp, vy: Math.sin(na) * sp, dmg: Math.round((etat.S.shotDmg + etat.S.dmg) * (1 + etat.S.reflect)), pierce: 1 + etat.S.pierce, life: 1.2, r: 6, hit: new Set(), refl: 1 });
     burst(b.x, b.y, '#ffffff', 5, 200, .2);
   }
-  if (refl) { AU.play('reflect'); stop(.05); txt(etat.P.x, etat.P.y - 26, refl > 1 ? 'RENVOI ×' + refl : 'RENVOI', '#8fe9ff'); etat.P.nova = Math.min(100, etat.P.nova + 3 * refl * etat.S.novaRate); }
+  if (refl) { sfx.play('reflect'); stop(.05); txt(etat.P.x, etat.P.y - 26, refl > 1 ? 'RENVOI ×' + refl : 'RENVOI', '#8fe9ff'); etat.P.nova = Math.min(100, etat.P.nova + 3 * refl * etat.S.novaRate); }
 }
 export function shoot() {
   etat.P.shotCd = etat.S.shotCd;
@@ -142,20 +141,20 @@ export function shoot() {
     etat.projs.push({ x: etat.P.x + Math.cos(a) * 14, y: etat.P.y + Math.sin(a) * 14, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: etat.S.shotDmg, pierce: etat.S.pierce, life: .9, r: 5, hit: new Set() });
   }
   flare(etat.P.x + Math.cos(etat.P.aim) * 16, etat.P.y + Math.sin(etat.P.aim) * 16, '#8fe9ff', 26, .12);
-  AU.play('shot');
+  sfx.play('shot');
 }
 export function dash(mx, my) {
   if (etat.P.dashCh <= 0) return;
   etat.P.dashCh--; if (etat.P.dashRe <= 0) etat.P.dashRe = etat.S.dashCd;
   let a = (mx || my) ? Math.atan2(my, mx) : etat.P.aim;
   etat.P.dx = Math.cos(a); etat.P.dy = Math.sin(a); etat.P.dashT = .17; etat.P.inv = Math.max(etat.P.inv, .22);
-  AU.play('dash'); ring(etat.P.x, etat.P.y, '#8fe9ff', 6, 34, .25, 3);
+  sfx.play('dash'); ring(etat.P.x, etat.P.y, '#8fe9ff', 6, 34, .25, 3);
   if (etat.S.timeSlow) { game.slow = .35; game.slowT = .9; }
 }
 export function doNova(free) {
   if (!free && etat.P.nova < 100) return;
   if (!free) etat.P.nova = 0;
-  AU.play('nova'); shake(18); stop(.12); flash('#ffffff', .6);
+  sfx.play('nova'); shake(18); stop(.12); flash('#ffffff', .6);
   ring(etat.P.x, etat.P.y, '#ffffff', 10, 340, .6, 10); ring(etat.P.x, etat.P.y, '#8fe9ff', 10, 260, .5, 18); flare(etat.P.x, etat.P.y, '#8fe9ff', 300, .5);
   burst(etat.P.x, etat.P.y, '#8fe9ff', 50, 600, .8, 'shard');
   for (const b of etat.bullets) { b.dead = true; burst(b.x, b.y, '#ffffff', 2, 100, .2); }
@@ -175,7 +174,7 @@ export function spawnWave(list) {
     const p = freeSpot(r + 6, 230) || freeSpot(r + 6, 120) || { x: W / 2, y: 120 };
     etat.spawners.push({ x: p.x, y: p.y, type: s.type, elite: s.elite, t: .85 + i * .09, max: .85 + i * .09 });
   });
-  AU.play('spawn');
+  sfx.play('spawn');
 }
 export function eShoot(x, y, a, sp, col = '#ff3d7f', r = 6, dmg = 12) {
   etat.bullets.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r, col, dmg, life: 6 });
@@ -202,7 +201,7 @@ export function updEnemy(e, dt) {
       tx = (ux - uy * w) * sp; ty = (uy + ux * w) * sp; break;
     }
     case 'spitter': {
-      if (e.st === 'aim') { if (e.stT <= 0) { const n = etat.room.z >= 1 ? 3 : 1; for (let i = 0; i < n; i++) eShoot(e.x, e.y, Math.atan2(dy, dx) + (i - (n - 1) / 2) * .28, 185); AU.play('eshot'); e.st = 'move'; e.cd = rnd(1.8, 2.6); } break; }
+      if (e.st === 'aim') { if (e.stT <= 0) { const n = etat.room.z >= 1 ? 3 : 1; for (let i = 0; i < n; i++) eShoot(e.x, e.y, Math.atan2(dy, dx) + (i - (n - 1) / 2) * .28, 185); sfx.play('eshot'); e.st = 'move'; e.cd = rnd(1.8, 2.6); } break; }
       const want = d < 190 ? -1 : d > 300 ? 1 : 0, side = Math.sin(e.t * .8 + e.a) > 0 ? 1 : -1;
       tx = (ux * want - uy * side * .7) * sp; ty = (uy * want + ux * side * .7) * sp;
       if (e.cd <= 0) { e.st = 'aim'; e.stT = .5; }
@@ -211,23 +210,23 @@ export function updEnemy(e, dt) {
     case 'bomber': {
       if (e.st === 'fuse') { if (e.stT <= 0) { e.exploded = true; explode(e.x, e.y, 85, 22, 40, e.col); e.hp = 0; killEnemy(e); } break; }
       tx = ux * sp; ty = uy * sp;
-      if (d < 58) { e.st = 'fuse'; e.stT = .55; AU.play('warn'); }
+      if (d < 58) { e.st = 'fuse'; e.stT = .55; sfx.play('warn'); }
       break;
     }
     case 'splitter': {
       tx = ux * sp + Math.cos(e.t * 2) * 40; ty = uy * sp + Math.sin(e.t * 2) * 40; break;
     }
     case 'brute': {
-      if (e.st === 'wind') { if (e.stT <= 0) { e.st = 'charge'; e.stT = .6; AU.play('dash'); } break; }
+      if (e.st === 'wind') { if (e.stT <= 0) { e.st = 'charge'; e.stT = .6; sfx.play('dash'); } break; }
       if (e.st === 'charge') {
         const hit = moveCircle(e, Math.cos(e.a) * 540 * dt, Math.sin(e.a) * 540 * dt);
         if (R.f() < .5) burst(e.x, e.y, e.col, 1, 60, .3);
-        if (hit || e.stT <= 0) { e.st = 'stun'; e.stT = hit ? .9 : .4; if (hit) { shake(8); ring(e.x, e.y, e.col, 10, 70, .3); AU.play('boom'); } }
+        if (hit || e.stT <= 0) { e.st = 'stun'; e.stT = hit ? .9 : .4; if (hit) { shake(8); ring(e.x, e.y, e.col, 10, 70, .3); sfx.play('boom'); } }
         break;
       }
       if (e.st === 'stun') { if (e.stT <= 0) { e.st = 'move'; e.cd = rnd(1.8, 3); } break; }
       tx = ux * sp; ty = uy * sp;
-      if (e.cd <= 0 && d < 400) { e.st = 'wind'; e.stT = .7; e.a = Math.atan2(dy, dx); AU.play('warn'); }
+      if (e.cd <= 0 && d < 400) { e.st = 'wind'; e.stT = .7; e.a = Math.atan2(dy, dx); sfx.play('warn'); }
       break;
     }
     case 'weaver': {
@@ -240,7 +239,7 @@ export function updEnemy(e, dt) {
         break;
       }
       if (e.st === 'appear') {
-        if (e.stT <= 0) { const n = etat.room.z >= 2 ? 14 : 10, o = rnd(TAU); for (let i = 0; i < n; i++) eShoot(e.x, e.y, o + i / n * TAU, 150, '#c77dff'); AU.play('eshot'); e.st = 'move'; e.cd = rnd(2.6, 3.6); }
+        if (e.stT <= 0) { const n = etat.room.z >= 2 ? 14 : 10, o = rnd(TAU); for (let i = 0; i < n; i++) eShoot(e.x, e.y, o + i / n * TAU, 150, '#c77dff'); sfx.play('eshot'); e.st = 'move'; e.cd = rnd(2.6, 3.6); }
         break;
       }
       tx = -uy * 50 * Math.sin(e.t); ty = ux * 50 * Math.sin(e.t);
@@ -250,7 +249,7 @@ export function updEnemy(e, dt) {
     case 'sentinel': {
       e.a += dt * (e.st === 'fire' ? 2.2 : .6);
       if (e.st === 'fire') {
-        if ((e.fT = (e.fT || 0) - dt) <= 0) { e.fT = .17; const arms = etat.room.z >= 2 ? 4 : 3; for (let i = 0; i < arms; i++) eShoot(e.x, e.y, e.a + i / arms * TAU, 140, '#ff6bd6', 5, 10); AU.play('eshot'); }
+        if ((e.fT = (e.fT || 0) - dt) <= 0) { e.fT = .17; const arms = etat.room.z >= 2 ? 4 : 3; for (let i = 0; i < arms; i++) eShoot(e.x, e.y, e.a + i / arms * TAU, 140, '#ff6bd6', 5, 10); sfx.play('eshot'); }
         if (e.stT <= 0) { e.st = 'move'; e.cd = rnd(1.4, 2); }
       } else if (e.cd <= 0) { e.st = 'fire'; e.stT = 2.2; }
       tx = ux * sp; ty = uy * sp; break;

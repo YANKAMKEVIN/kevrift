@@ -1,9 +1,9 @@
 // Outils communs aux tests unitaires : on joue avec les vraies règles (src/), sans navigateur.
-import { etat, game, fx, keys, pressed } from '../../src/state.js';
-import { newRun, openPortals, rollUps, takeUp } from '../../src/rooms.js';
-import { hitEnemy } from '../../src/combat.js';
-import { update } from '../../src/update.js';
-import { seed } from '../../src/util.js';
+import { etat, game, fx, keys, pressed } from '../../src/sim/state.js';
+import { newRun, openPortals, rollUps, takeUp } from '../../src/sim/rooms.js';
+import { hitEnemy } from '../../src/sim/combat.js';
+import { update } from '../../src/sim/update.js';
+import { seed } from '../../src/sim/math.js';
 
 export { etat, game, fx, keys, pressed };
 export const DT = 1 / 60;

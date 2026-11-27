@@ -1,24 +1,23 @@
 // @ts-check
 /** Partie et salles : nouvelle partie, génération des salles, vagues, portails, progression, améliorations. Sans DOM. */
-import { BORDER, EDEF, H, PLAN, RAR, ROMAN, W, ZONES } from './config.js';
+import { BORDER, EDEF, H, PLAN, RAR, ROMAN, W, ZONES } from '../config.js';
 import { UPS } from './ups.js';
-import { R, clamp, pick, rint, rnd } from './util.js';
-import { AU } from './audio.js';
-import { etat, fx, game } from './state.js';
+import { R, clamp, pick, rint, rnd } from './math.js';
+import { etat, fx, game, makePlayer, makeStats, music, sfx } from './state.js';
 import { banner, burst, ring, txt } from './effects.js';
 import { heal } from './combat.js';
 import { startBoss } from './boss.js';
 
 export function newRun() {
-  etat.S = { dmg: 12, atkSpd: 1, range: 64, shotDmg: 9, shotCd: .55, shots: 1, pierce: 0, homing: 0, dashCd: .85, dashMax: 1, crit: .05, life: 0, chain: 0, orbit: 0, explode: 0, thorns: 0, speed: 215, novaRate: 1, frost: 0, shield: 0, timeSlow: 0, lastBreath: 0, burn: 0, novaRunes: 0, reflect: 0, maxHp: 100 };
-  etat.P = { x: W / 2, y: 460, vx: 0, vy: 0, r: 11, hp: 100, face: -Math.PI / 2, aim: -Math.PI / 2, atkCd: 0, combo: 0, comboT: 0, shotCd: 0, dashCh: 1, dashRe: 0, dashT: 0, dx: 0, dy: 0, inv: 0, nova: 0, shieldT: 0, trailT: 0, hurtT: 0, orbA: 0, step: 0, dead: false, lunge: 0 };
-  Object.assign(game, { runT: 0, kills: 0, shards: 0, dealt: 0, roomsDone: 0, taken: {}, slow: 1, slowT: 0, hitstop: 0 });
+  etat.S = makeStats();
+  etat.P = makePlayer();
+  Object.assign(game, { endT: 0, endWon: false, trans: null, banner: null, runT: 0, kills: 0, shards: 0, dealt: 0, roomsDone: 0, taken: {}, slow: 1, slowT: 0, hitstop: 0 });
   etat.stageIdx = 0; etat.roomInStage = 0; etat.roomNum = 0; etat.boss = null;
   loadRoom('combat');
   game.state = 'play';
   fx.overlay(null);
   banner('STRATE I', ZONES[0].name);
-  AU.zone = 0; AU.target = 1;
+  music.zone = 0; music.target = 1;
 }
 function loadRoom(type) {
   const z = type === 'boss' ? 2 : PLAN[etat.stageIdx][0];
@@ -94,7 +93,7 @@ export function planWaves() {
    ========================================================= */
 export function roomCleared() {
   etat.room.cleared = true; etat.room.clearT = 0;
-  AU.play('clear'); AU.target = 0;
+  sfx.play('clear'); music.target = 0;
   txt(W / 2, H / 2 - 40, 'SALLE PURIFIÉE', ZONES[etat.room.z].acc, true);
   for (const p of etat.picks) p.mag = 1;
   game.roomsDone++;
@@ -115,10 +114,10 @@ export function openPortals() {
     const order = R.f() < .5 ? ['combat', other] : [other, 'combat'];
     etat.portals.push({ x: W / 2 - 170, y: 110, type: order[0], t: 0 }, { x: W / 2 + 170, y: 110, type: order[1], t: 0 });
   }
-  AU.play('portal');
+  sfx.play('portal');
 }
 export function enterPortal(p) {
-  AU.play('portal');
+  sfx.play('portal');
   game.trans = { t: 0, type: p.type, gate: p.gate, done: false };
 }
 export function advance(type) {
@@ -128,9 +127,9 @@ export function advance(type) {
   if (type === 'boss') { loadRoom('boss'); return; }
   loadRoom(type);
   if (etat.stageIdx !== wasStage) {
-    banner('STRATE ' + ROMAN[etat.stageIdx], ZONES[etat.stageIdx].name); AU.zone = etat.stageIdx; heal(30);
+    banner('STRATE ' + ROMAN[etat.stageIdx], ZONES[etat.stageIdx].name); music.zone = etat.stageIdx; heal(30);
   } else if (type === 'defi' && game.trans && game.trans.gate) banner('GARDIEN', 'Un champion garde le passage');
-  AU.target = etat.room.cleared ? 0 : 1;
+  music.target = etat.room.cleared ? 0 : 1;
 }
 /* --- cartes d'amélioration --- */
 export function rollUps(n, boost) {
@@ -146,5 +145,5 @@ export function rollUps(n, boost) {
 }
 export function takeUp(u) {
   game.taken[u.id] = (game.taken[u.id] || 0) + 1; u.f();
-  AU.play('up'); burst(etat.P.x, etat.P.y, RAR[u.r].c, 30, 300, .6, 'shard'); ring(etat.P.x, etat.P.y, RAR[u.r].c, 10, 80, .4, 5);
+  sfx.play('up'); burst(etat.P.x, etat.P.y, RAR[u.r].c, 30, 300, .6, 'shard'); ring(etat.P.x, etat.P.y, RAR[u.r].c, 10, 80, .4, 5);
 }

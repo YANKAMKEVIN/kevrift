@@ -2,9 +2,9 @@
 /** Entrées : clavier, souris, manette, tactile, navigation dans les menus. */
 import { H, W } from './config.js';
 import { $ } from './util.js';
-import { cv, stage } from './render.js';
+import { cv, stage } from './render/canvas.js';
 import { AU } from './audio.js';
-import { IN, T, game, keys, pressed } from './state.js';
+import { IN, T, game, keys, pressed } from './sim/state.js';
 import { togglePause } from './ui.js';
 
 // fronts montants pour l'action en cours

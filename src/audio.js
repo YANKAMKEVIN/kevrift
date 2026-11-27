@@ -1,7 +1,8 @@
 // @ts-check
 /** Musique adaptative et bruitages générés avec la Web Audio API. */
 import { CFG } from './save.js';
-import { R, rnd } from './util.js';
+import { frnd as rnd } from './util.js';
+import { music, sfx } from './sim/state.js';
 
 /* =========================================================
    AUDIO : moteur de synthèse, effets et musique générative
@@ -9,7 +10,7 @@ import { R, rnd } from './util.js';
 /** @type {any} Nœuds Web Audio créés au premier geste du joueur. */
 export const AU = {
   ac: null, master: null, mus: null, sfx: null, noise: null, delay: null, last: {},
-  intensity: 0, target: 0, zone: 0, step: 0, nextT: 0, bar: 0, on: false,
+  intensity: 0, step: 0, nextT: 0, bar: 0, on: false,
   init() {
     if (this.ac) { if (this.ac.state === 'suspended') this.ac.resume(); return; }
     const AC = window.AudioContext || /** @type {any} */ (window).webkitAudioContext; if (!AC) return;
@@ -23,7 +24,7 @@ export const AU = {
     const fb = ac.createGain(); fb.gain.value = .38; const dl = ac.createBiquadFilter(); dl.type = 'lowpass'; dl.frequency.value = 2400;
     this.delay.connect(dl); dl.connect(fb); fb.connect(this.delay); dl.connect(this.mus);
     const len = ac.sampleRate * 1.5, buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = R.f() * 2 - 1;
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     this.noise = buf;
     this.vol();
     this.nextT = ac.currentTime + .1; this.on = true;
@@ -102,21 +103,21 @@ export const AU = {
     if (this.nextT < ac.currentTime - .2) this.nextT = ac.currentTime + .05;
     while (this.nextT < ac.currentTime + .15) {
       this.note(this.step, this.nextT);
-      const bpm = this.zone === 3 ? 138 : 112 + this.zone * 6;
+      const bpm = music.zone === 3 ? 138 : 112 + music.zone * 6;
       this.nextT += 60 / bpm / 4;
       this.step = (this.step + 1) % 16;
-      if (this.step === 0) { this.bar++; this.intensity = this.target; }
+      if (this.step === 0) { this.bar++; this.intensity = music.target; }
     }
   },
   note(s, t) {
-    const I = this.intensity, z = this.zone, prog = this.PROG[z], ch = prog[this.bar % 4];
+    const I = this.intensity, z = music.zone, prog = this.PROG[z], ch = prog[this.bar % 4];
     const root = ch[0] - 24, M = this.mus, f = this.mtof;
     if (s === 0) {
       ch.forEach(m => {
         const o = this.ac.createOscillator(), o2 = this.ac.createOscillator(), g = this.ac.createGain(), fl = this.ac.createBiquadFilter();
         o.type = 'sawtooth'; o2.type = 'sawtooth'; o.frequency.value = f(m); o2.frequency.value = f(m) * 1.006;
         fl.type = 'lowpass'; fl.frequency.value = I === 0 ? 700 : 1100; fl.Q.value = 2;
-        const len = 60 / (this.zone === 3 ? 138 : 112 + z * 6) * 4;
+        const len = 60 / (music.zone === 3 ? 138 : 112 + z * 6) * 4;
         g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.035, t + .3); g.gain.setValueAtTime(.035, t + len - .3); g.gain.linearRampToValueAtTime(0, t + len);
         o.connect(fl); o2.connect(fl); fl.connect(g); g.connect(M); o.start(t); o2.start(t); o.stop(t + len + .1); o2.stop(t + len + .1);
       });
@@ -148,3 +149,5 @@ export const AU = {
     }
   }
 };
+// la simulation demande ses bruitages par ce port (elle ne connaît pas la Web Audio API)
+sfx.play = (n, p) => AU.play(n, p);

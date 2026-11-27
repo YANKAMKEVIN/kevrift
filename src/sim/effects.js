@@ -1,8 +1,7 @@
 // @ts-check
 /** Effets de jeu : particules, textes, secousses, ralentis, bandeaux (données seulement, dessinées par render.js). */
-import { CFG } from './save.js';
-import { TAU } from './config.js';
-import { rnd } from './util.js';
+import { TAU } from '../config.js';
+import { rnd } from './math.js';
 import { etat, game } from './state.js';
 
 /* =========================================================
@@ -18,7 +17,7 @@ export function burst(x, y, col, n = 12, spd = 260, life = .5, kind = 'spark') {
 export function ring(x, y, col, r0, r1, life = .35, w = 4) { etat.parts.push({ k: 'ring', x, y, r0, r1, life, max: life, col, w }); }
 export function flare(x, y, col, r, life = .25) { etat.parts.push({ k: 'glow', x, y, r, life, max: life, col }); }
 export function txt(x, y, s, col = '#fff', big = false) { etat.texts.push({ x: x + rnd(-6, 6), y, s, col, t: 0, big }); }
-export function shake(a) { if (CFG.shake) game.shake = Math.min(24, Math.max(game.shake, a)); }
+export function shake(a) { game.shake = Math.min(24, Math.max(game.shake, a)); }
 export function stop(t) { game.hitstop = Math.max(game.hitstop, t); }
 export function flash(c, a = .5) { game.flash = a; game.flashCol = c; }
 export function banner(t, s, big) { game.banner = { t, s, life: 2.6, big }; }
