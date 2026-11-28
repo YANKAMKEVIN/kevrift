@@ -83,7 +83,9 @@ try {
   check((await page.locator('#endT').innerText()).length > 0 && await page.locator('#endT.gold').count() === 1, 'écran de victoire');
   await page.screenshot({ path: `${OUT}/partie-3-victoire.png` });
   let d = await save();
-  check(d?.version === 1, 'sauvegarde écrite, version 1');
+  check(d?.version === 2, 'sauvegarde écrite, version 2');
+  check(d?.stats?.runs >= 1 && d.stats.wins >= 1 && d.stats.kills > 0 && d.stats.deepest === 3, `carrière enregistrée (${d?.stats?.runs} plongée, ${d?.stats?.kills} ennemis)`);
+  check(Array.isArray(d?.top) && d.top[0]?.won === true, 'palmarès enregistré');
   check(d?.best?.won === true && d.best.score >= 1000, `record enregistré (score ${d?.best?.score?.toFixed?.(1)})`);
 
   // réglages
@@ -96,6 +98,7 @@ try {
   check(d?.cfg?.mus === 25 && d.cfg.shake === false, 'réglages sauvegardés (musique 25, secousses non)');
   await page.reload();
   check((await page.locator('#best').innerText()).includes('vaincu'), 'après rechargement : record affiché sur le titre');
+  check((await page.locator('#career').innerText()).includes('victoire'), 'après rechargement : carrière affichée sur le titre');
   check(await page.locator('#vMus').inputValue() === '25', 'après rechargement : réglages retrouvés');
 
   await page.evaluate(() => { localStorage.clear(); localStorage.setItem('kevrift_best', JSON.stringify({ score: 52, won: false, rooms: 5, time: 300 })); localStorage.setItem('kevrift_cfg', JSON.stringify({ mus: 40, sfx: 60, shake: true, glow: false })); });

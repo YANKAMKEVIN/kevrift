@@ -97,13 +97,21 @@ function endRun(won) {
   $('endStats').innerHTML = st.map(s => `<div><b>${s[1]}</b><small>${s[0]}</small></div>`).join('');
   renderUps($('endUps'));
   const score = (won ? 1000 : 0) + game.roomsDone * 10 + (etat.boss ? (1 - Math.max(0, etat.boss.hp) / etat.boss.maxHp) * 9 : 0);
-  recordRun({ score, won, rooms: game.roomsDone, time: game.runT });
+  recordRun({ score, won, rooms: game.roomsDone, time: game.runT }, { kills: game.kills, deepest: etat.boss ? 3 : etat.stageIdx });
   showBest();
   showOv('oEnd');
 }
 function showBest() {
   const b = save.best;
   $('best').textContent = b ? (b.won ? 'Meilleure plongée : Archonte vaincu en ' + fmtT(b.time) : 'Meilleure plongée : ' + b.rooms + ' salle' + (b.rooms > 1 ? 's' : '') + ' purifiée' + (b.rooms > 1 ? 's' : '')) : '';
+  const c = save.stats;
+  $('career').textContent = c.runs ? careerText(c) : '';
+}
+/** @param {import('./save.js').Stats} c */
+function careerText(c) {
+  const nf = /** @param {number} n */ n => n.toLocaleString('fr-FR');
+  const deep = c.deepest >= 3 ? 'Archonte atteint' : 'strate ' + ROMAN[c.deepest] + ' atteinte';
+  return `${nf(c.runs)} plongée${c.runs > 1 ? 's' : ''} · ${nf(c.wins)} victoire${c.wins > 1 ? 's' : ''} · ${nf(c.kills)} ennemis vaincus · ${deep}`;
 }
 showBest();
 $('bPlay').onclick = () => { AU.init(); newRun(); };

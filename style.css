@@ -26,6 +26,7 @@ h2.gold{color:var(--gold);text-shadow:0 0 .5em #ffd45a88}
 .btn.big{font-size:1.35em;padding:.7em 2.4em}
 .btn.ghost{background:#0000;border-color:#ffffff33}
 .best{color:var(--gold);font-size:.95em;min-height:1.2em}
+.best.career{color:#9fd8e0;font-size:.8em;opacity:.85}
 .cards{display:flex;gap:1.1em;justify-content:center;flex-wrap:wrap}
 .card{all:unset;cursor:pointer;width:12.5em;min-height:15.5em;box-sizing:border-box;padding:1.1em 1em;display:flex;flex-direction:column;align-items:center;gap:.5em;text-align:center;background:linear-gradient(170deg,#0f2b33f2,#071419f2 70%);border:2px solid var(--rc,#8fe9ff);clip-path:polygon(1em 0,100% 0,100% calc(100% - 1em),calc(100% - 1em) 100%,0 100%,0 1em);transition:transform .14s,box-shadow .14s,filter .14s;position:relative;animation:cardIn .35s backwards}
 .card:nth-child(2){animation-delay:.07s}.card:nth-child(3){animation-delay:.14s}.card:nth-child(4){animation-delay:.21s}
