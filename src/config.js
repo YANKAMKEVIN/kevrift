@@ -5,7 +5,7 @@
    KEVRIFT : roguelike d'action. Tout est généré : image, son, salles.
    ========================================================= */
 /** Version du jeu, affichée sur l'écran titre (garder égale à package.json). */
-export const VERSION = '1.1.0';
+export const VERSION = '1.2.0';
 export const W = 960, H = 540;
 export const TAU = Math.PI * 2;
 /* =========================================================
