@@ -58,7 +58,7 @@ kbd{font-family:inherit;background:#ffffff1a;padding:0 .35em;border-radius:3px;c
 .upl span{padding:.2em .6em;border:1px solid var(--rc);color:var(--rc)}
 #touch{position:absolute;inset:0;display:none;pointer-events:none}
 #touch.on{display:block}
-.tb{position:absolute;pointer-events:auto;border-radius:50%;display:grid;place-items:center;font:700 .95em 'Chakra Petch';color:#fff;background:#ffffff14;border:2px solid #ffffff40;touch-action:none}
+.tb{position:absolute;pointer-events:auto;min-width:44px;min-height:44px;border-radius:50%;display:grid;place-items:center;font:700 .95em 'Chakra Petch';color:#fff;background:#ffffff14;border:2px solid #ffffff40;touch-action:none}
 .tb.dn{background:#3ff3e055;border-color:var(--acc)}
 #tAtk{width:5.6em;height:5.6em;right:1.2em;bottom:1.2em}
 #tDash{width:4em;height:4em;right:7.6em;bottom:.8em}

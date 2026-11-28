@@ -16,12 +16,16 @@ export async function startServer() {
   const dir = process.env.SITE_DIR;
   const proc = dir
     ? spawn('python3', ['-m', 'http.server', String(port), '--bind', '127.0.0.1', '--directory', dir], { stdio: 'ignore' })
-    : spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', String(port), '--strictPort', '--host', '127.0.0.1', '--clearScreen', 'false'], { stdio: 'ignore' });
+    : spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', String(port), '--strictPort', '--host', '127.0.0.1', '--clearScreen', 'false'], { stdio: ['ignore', 'ignore', 'pipe'] });
+  // un serveur qui tombe en cours de test doit se voir dans le journal (sinon : simple « page injoignable »)
+  let stopped = false, err = '';
+  proc.stderr?.on('data', d => { err += d; });
+  proc.on('exit', code => { if (!stopped) console.log(`!! serveur local arrêté (code ${code}) ${err.slice(-500)}`); });
   for (let i = 0; i < 200; i++) {
     const ok = await new Promise(res => { const c = connect(port, '127.0.0.1', () => { c.end(); res(true); }); c.on('error', () => res(false)); });
     if (ok) break;
     if (i === 199) { proc.kill(); throw new Error('serveur local injoignable'); }
     await sleep(100);
   }
-  return { base: `http://127.0.0.1:${port}/`, stop: () => proc.kill() };
+  return { base: `http://127.0.0.1:${port}/`, stop: () => { stopped = true; proc.kill(); } };
 }

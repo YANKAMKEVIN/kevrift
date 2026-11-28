@@ -7,7 +7,7 @@ import { view } from './render/view.ts';
 import { clamp, seed } from './sim/math.ts';
 import { hitEnemy } from './sim/combat.ts';
 import { pollPad } from './input.ts';
-import { etat, game } from './sim/state.ts';
+import { IN, T, etat, game } from './sim/state.ts';
 import { UPS } from './sim/ups.ts';
 import { advance, newRun, takeUp } from './sim/rooms.ts';
 import { update } from './sim/update.ts';
@@ -55,6 +55,7 @@ const hook = {
   /** Nombre de visuels peints chargés (undefined tant que le chargement n'est pas fini). */ art: undefined as number | undefined,
   get P() { return etat.P; }, get S() { return etat.S; }, get enemies() { return etat.enemies; }, get room() { return etat.room; },
   get boss() { return etat.boss; }, get portals() { return etat.portals; },
+  get projs() { return etat.projs; }, get slashes() { return etat.slashes; }, IN, T,
   set roomNum(v: number) { etat.roomNum = v; }, set stageIdx(v: number) { etat.stageIdx = v; }, set roomInStage(v: number) { etat.roomInStage = v; },
   get running() { return running; },
 };
