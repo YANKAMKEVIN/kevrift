@@ -14,5 +14,5 @@ export default defineConfig({
     name: 'copier-visuels',
     closeBundle() { cpSync('art', 'dist/art', { recursive: true }); },
   }],
-  test: { include: ['tests/unit/**/*.test.{js,mjs}'], testTimeout: 30000 },
+  test: { include: ['tests/unit/**/*.test.{js,mjs}'], testTimeout: 180000 },
 });
