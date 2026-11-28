@@ -22,6 +22,7 @@ export function resize() {
 /* ---------- sprites de lueur ---------- */
 /** @type {Record<string, HTMLCanvasElement>} */
 const glowCache = {};
+/** @param {string} col */
 function glowSprite(col) {
   if (glowCache[col]) return glowCache[col];
   const c = document.createElement('canvas'); c.width = c.height = 64;
@@ -30,6 +31,7 @@ function glowSprite(col) {
   g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
   return glowCache[col] = c;
 }
+/** @param {number} x @param {number} y @param {number} r @param {string} col @param {number} [a] */
 export function glow(x, y, r, col, a = 1) {
   ctx.globalAlpha = a; ctx.drawImage(glowSprite(col), x - r, y - r, r * 2, r * 2); ctx.globalAlpha = 1;
 }

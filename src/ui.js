@@ -11,7 +11,9 @@ import { UPS } from './sim/ups.js';
 import { drawFloor } from './render/floor.js';
 import { newRun, openPortals, rollUps, takeUp } from './sim/rooms.js';
 import { heal } from './sim/combat.js';
+/** @typedef {import('./sim/ups.js').Up} Up */
 
+/** @param {Up} u @param {string} [extra] */
 function cardHTML(u, extra = '') {
   const lv = game.taken[u.id] || 0;
   return `<span class="rar">${RAR[u.r].n}</span>${svgIcon(u.ic)}<b>${u.n}</b><p>${u.d}</p>${extra || `<span class="lv">${lv ? 'Niveau ' + (lv + 1) + ' / ' + u.max : 'Nouveau'}</span>`}`;
@@ -64,6 +66,7 @@ function showShop() {
    MENUS ET FIN DE PARTIE
    ========================================================= */
 const OVS = ['oTitle', 'oHelp', 'oSet', 'oChoice', 'oPause', 'oEnd'];
+/** @param {string|null} id */
 function showOv(id) {
   OVS.forEach(o => $(o).classList.toggle('on', o === id));
   touchUI.style.visibility = id ? 'hidden' : 'visible';
@@ -78,10 +81,12 @@ export function togglePause() {
     showOv(view.ovBack);
   }
 }
+/** @param {HTMLElement} el */
 function renderUps(el) {
   const ids = Object.keys(game.taken);
   el.innerHTML = ids.length ? ids.map(id => { const u = /** @type {any} */ (UPS.find(x => x.id === id)); return `<span style="--rc:${RAR[u.r].c}">${u.n}${game.taken[id] > 1 ? ' ×' + game.taken[id] : ''}</span>`; }).join('') : '<span style="--rc:#8fb4c0">Aucun pouvoir pour l\'instant</span>';
 }
+/** @param {boolean} won */
 function endRun(won) {
   if (game.state === 'over') return;
   game.state = 'over'; music.target = 0;
@@ -114,8 +119,9 @@ $('bResume').onclick = () => togglePause();
 $('bQuit').onclick = () => { etat.P.dead = true; endRun(false); };
 $('vMus').value = CFG.mus;
 $('vSfx').value = CFG.sfx;
-$('vMus').oninput = e => { CFG.mus = +e.target.value; persist(); AU.vol(); };
-$('vSfx').oninput = e => { CFG.sfx = +e.target.value; persist(); AU.vol(); AU.play('hit'); };
+$('vMus').oninput = /** @param {any} e */ e => { CFG.mus = +e.target.value; persist(); AU.vol(); };
+$('vSfx').oninput = /** @param {any} e */ e => { CFG.sfx = +e.target.value; persist(); AU.vol(); AU.play('hit'); };
+/** @param {string} id @param {'shake'|'glow'} key */
 function tg(id, key) { const el = $(id); const upd = () => { el.classList.toggle('on', CFG[key]); el.textContent = CFG[key] ? 'OUI' : 'NON'; }; upd(); el.onclick = () => { CFG[key] = !CFG[key]; persist(); upd(); }; }
 tg('tgShake', 'shake');
 tg('tgGlow', 'glow');

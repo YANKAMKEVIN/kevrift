@@ -5,14 +5,19 @@ import { R, angDiff, clamp, lerp, rnd } from './math.js';
 import { IN, etat, game, music, scheduleEnd, sfx } from './state.js';
 import { freeSpot, rectHit, solidAt } from './rooms.js';
 import { banner, burst, flare, flash, ring, shake, stop, txt } from './effects.js';
+/** @typedef {import('./state.js').Ent} Ent */
+/** @typedef {import('./state.js').PadState} PadState */
 
 /* =========================================================
    COMBAT DU HÉROS
    ========================================================= */
+/** Soigne le héros sans dépasser son maximum. @param {number} n */
 export function heal(n) {
   const before = etat.P.hp; etat.P.hp = Math.min(etat.S.maxHp, etat.P.hp + n);
   if (etat.P.hp > before) { txt(etat.P.x, etat.P.y - 20, '+' + Math.round(etat.P.hp - before), '#6dffb0'); }
 }
+/** Blesse le héros (sauf invulnérable, en esquive ou protégé). Renvoie true si le coup porte.
+ * @param {number} dmg @param {number} sx @param {number} sy source du coup (pour le recul) @returns {boolean} */
 export function hurtPlayer(dmg, sx, sy) {
   if (etat.P.inv > 0 || etat.P.dashT > 0 || etat.P.dead || game.state !== 'play') return false;
   if (etat.S.shield && etat.P.shieldT <= 0) {
@@ -38,7 +43,11 @@ function die() {
   burst(etat.P.x, etat.P.y, '#ffffff', 40, 400, 1, 'shard'); ring(etat.P.x, etat.P.y, '#ff4d6d', 10, 260, .9, 8); shake(20);
   scheduleEnd(false, 1.5);
 }
+/** @param {number} base */
 function critRoll(base) { const c = R.f() < etat.S.crit; return { v: Math.round(base * (c ? 2.2 : 1) * rnd(.92, 1.08)), c }; }
+/** Options d'un coup porté. @typedef {{kb?:number,nova?:number,nochain?:number|boolean,quiet?:number|boolean,fixed?:number|boolean}} HitOpts */
+/** Frappe un ennemi : dégâts (critique possible), recul, nova, éclair en chaîne, mort.
+ * @param {Ent} e @param {number} dmg @param {number} kx @param {number} ky direction du recul @param {HitOpts} [o] */
 export function hitEnemy(e, dmg, kx, ky, o = {}) {
   if (e.dead || e.spawnT > 0) return;
   if (e.type === 'boss' && e.invT > 0) { if (!o.quiet) burst(e.x + rnd(-20, 20), e.y + rnd(-20, 20), '#ffffff', 3, 120, .2); return; }
@@ -55,6 +64,7 @@ export function hitEnemy(e, dmg, kx, ky, o = {}) {
   if (!o.nochain && etat.S.chain && R.f() < etat.S.chain) chainZap(e, 3, Math.round(etat.S.dmg * .9));
   if (e.hp <= 0) killEnemy(e);
 }
+/** @param {Ent} from @param {number} n @param {number} dmg */
 function chainZap(from, n, dmg) {
   let cur = from; const hit = new Set([from]); sfx.play('zap');
   for (let i = 0; i < n; i++) {
@@ -65,6 +75,7 @@ function chainZap(from, n, dmg) {
     hit.add(best); hitEnemy(best, dmg, best.x - cur.x, best.y - cur.y, { nochain: 1, kb: 60, quiet: 1 }); cur = best;
   }
 }
+/** @param {Ent} e */
 export function killEnemy(e) {
   if (e.dead) return;
   e.dead = true; game.kills++;
@@ -83,12 +94,15 @@ export function killEnemy(e) {
   if (e.type === 'bomber' && !e.exploded) explode(e.x, e.y, 70, 0, 35, e.col);
   if (etat.S.explode) explode(e.x, e.y, 60 + 15 * etat.S.explode, 0, etat.S.dmg * (.8 + .5 * etat.S.explode), '#8fe9ff', true);
 }
+/** Explosion : blesse le héros (pd) et/ou les ennemis (ed) dans le rayon r.
+ * @param {number} x @param {number} y @param {number} r @param {number} pd @param {number} ed @param {string} col @param {boolean} [small] */
 export function explode(x, y, r, pd, ed, col, small) {
   ring(x, y, col, 8, r, .35, 6); flare(x, y, col, r * 1.8, .3); burst(x, y, col, small ? 10 : 22, r * 4, .45);
   sfx.play('boom'); shake(small ? 4 : 9);
   if (pd && Math.hypot(etat.P.x - x, etat.P.y - y) < r + etat.P.r) hurtPlayer(pd, x, y);
   if (ed) for (const e of etat.enemies) if (!e.dead && Math.hypot(e.x - x, e.y - y) < r + e.r) hitEnemy(e, Math.round(ed), e.x - x, e.y - y, { nochain: 1, quiet: 1, fixed: 1, nova: .5 });
 }
+/** Direction de visée : souris, stick droit, sinon visée automatique. @param {PadState|null} st */
 export function aimDir(st) {
   if (IN.mode === 'mouse') return Math.atan2(IN.mouse.y - etat.P.y, IN.mouse.x - etat.P.x);
   if (IN.mode === 'pad' && st && (st.rx || st.ry)) return Math.atan2(st.ry, st.rx);
@@ -143,6 +157,7 @@ export function shoot() {
   flare(etat.P.x + Math.cos(etat.P.aim) * 16, etat.P.y + Math.sin(etat.P.aim) * 16, '#8fe9ff', 26, .12);
   sfx.play('shot');
 }
+/** @param {number} mx @param {number} my direction voulue */
 export function dash(mx, my) {
   if (etat.P.dashCh <= 0) return;
   etat.P.dashCh--; if (etat.P.dashRe <= 0) etat.P.dashRe = etat.S.dashCd;
@@ -151,6 +166,7 @@ export function dash(mx, my) {
   sfx.play('dash'); ring(etat.P.x, etat.P.y, '#8fe9ff', 6, 34, .25, 3);
   if (etat.S.timeSlow) { game.slow = .35; game.slowT = .9; }
 }
+/** @param {boolean} [free] déclenchée sans jauge (Dernier Souffle) */
 export function doNova(free) {
   if (!free && etat.P.nova < 100) return;
   if (!free) etat.P.nova = 0;
@@ -164,10 +180,12 @@ export function doNova(free) {
 /* =========================================================
    ENNEMIS
    ========================================================= */
+/** @param {string} type @param {number} x @param {number} y @param {boolean} [elite] @returns {Ent} */
 export function makeEnemy(type, x, y, elite) {
   const d = EDEF[type], mul = (1 + etat.roomNum * .11) * (elite ? 4 : 1);
   return { type, x, y, vx: 0, vy: 0, kx: 0, ky: 0, r: d.r * (elite ? 1.45 : 1), hp: d.hp * mul, maxHp: d.hp * mul, spd: d.spd, col: elite ? '#ffd45a' : d.col, dmg: d.dmg, elite, t: rnd(3), st: 'move', stT: 0, cd: rnd(1, 2.5), flash: 0, sq: 0, slow: 0, spawnT: 0, a: rnd(TAU), dead: false };
 }
+/** @param {{type:string,elite?:boolean}[]} list */
 export function spawnWave(list) {
   list.forEach((s, i) => {
     const r = EDEF[s.type].r * (s.elite ? 1.45 : 1);
@@ -176,9 +194,11 @@ export function spawnWave(list) {
   });
   sfx.play('spawn');
 }
+/** Tir ennemi. @param {number} x @param {number} y @param {number} a angle @param {number} sp vitesse @param {string} [col] @param {number} [r] @param {number} [dmg] */
 export function eShoot(x, y, a, sp, col = '#ff3d7f', r = 6, dmg = 12) {
   etat.bullets.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r, col, dmg, life: 6 });
 }
+/** Déplace un cercle en glissant sur les murs ; true s'il a touché un mur. @param {Ent|{x:number,y:number,r:number}} o @param {number} dx @param {number} dy */
 export function moveCircle(o, dx, dy) {
   o.x += dx; let hit = false;
   for (const w of etat.room.walls) if (rectHit(o.x, o.y, o.r, w)) { o.x = dx > 0 ? w.x - o.r - .01 : w.x + w.w + o.r + .01; hit = true; }
@@ -188,6 +208,7 @@ export function moveCircle(o, dx, dy) {
   o.x = clamp(o.x, BORDER + o.r, W - BORDER - o.r); o.y = clamp(o.y, BORDER + o.r, H - BORDER - o.r);
   return hit;
 }
+/** Une image d'un ennemi. @param {Ent} e @param {number} dt */
 export function updEnemy(e, dt) {
   e.t += dt; e.flash -= dt; e.sq = Math.max(0, e.sq - dt * 2); e.stT -= dt; e.cd -= dt;
   if (e.slow > 0) e.slow -= dt;

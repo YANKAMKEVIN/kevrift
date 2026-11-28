@@ -32,6 +32,8 @@ export const ICONS = {
   heal: '<path d="M12 3 V21 M3 12 H21"/><circle cx="12" cy="12" r="10"/>'
 };
 // statistiques et héros
+/** @typedef {{hp:number,r:number,spd:number,col:string,cost:number,dmg:number,shards:number}} EnemyDef */
+/** @type {Record<string, EnemyDef>} */
 export const EDEF = {
   mite: { hp: 20, r: 9, spd: 150, col: '#ff4d6d', cost: 1, dmg: 10, shards: 1 },
   spitter: { hp: 30, r: 12, spd: 75, col: '#ffa63d', cost: 2, dmg: 10, shards: 2 },
@@ -50,6 +52,7 @@ export const BORDER = 34;
    BOSS : L'ARCHONTE FRACTURÉ
    ========================================================= */
 export const BOSS_HP = 11000;
+/** @type {Record<string, {n:string,s:string,c:string}>} */
 export const PORTAL = {
   combat: { n: 'COMBAT', s: 'Une amélioration', c: '#3ff3e0' },
   defi: { n: 'DÉFI', s: 'Plus dur, meilleure récompense', c: '#c77dff' },

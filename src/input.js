@@ -18,6 +18,7 @@ addEventListener('keydown', e => {
   IN.mode = IN.mode === 'touch' || IN.mode === 'pad' ? 'kb' : IN.mode;
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
+/** @param {number} cx @param {number} cy */
 function toWorld(cx, cy) { const r = cv.getBoundingClientRect(); return { x: (cx - r.left) / r.width * W, y: (cy - r.top) / r.height * H }; }
 cv.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; const p = toWorld(e.clientX, e.clientY); IN.mouse.x = p.x; IN.mouse.y = p.y; IN.mouse.t = performance.now(); IN.mode = 'mouse'; });
 cv.addEventListener('pointerdown', e => {
@@ -32,27 +33,28 @@ cv.addEventListener('contextmenu', e => e.preventDefault());
 export const touchUI = $('touch'), joy = $('joy'), joyK = joy.firstElementChild;
 function enableTouch() { if (IN.mode !== 'touch') { IN.mode = 'touch'; } touchUI.classList.add('on'); $('rot').classList.add('need'); }
 addEventListener('touchstart', () => { enableTouch(); AU.init(); }, { passive: true });
-stage.addEventListener('pointerdown', e => {
+stage.addEventListener('pointerdown', /** @param {PointerEvent} e */ e => {
   if (e.pointerType !== 'touch' || game.state !== 'play') return;
   const r = stage.getBoundingClientRect();
-  if (e.clientX - r.left < r.width * .45 && T.joyId === null && !e.target.classList.contains('tb')) {
+  if (e.clientX - r.left < r.width * .45 && T.joyId === null && !(/** @type {HTMLElement} */ (e.target)).classList.contains('tb')) {
     T.joyId = e.pointerId; T.ox = e.clientX; T.oy = e.clientY; T.x = 0; T.y = 0;
     joy.style.display = 'block'; joy.style.left = (e.clientX - r.left) + 'px'; joy.style.top = (e.clientY - r.top) + 'px'; joyK.style.transform = '';
   }
 });
-stage.addEventListener('pointermove', e => {
+stage.addEventListener('pointermove', /** @param {PointerEvent} e */ e => {
   if (e.pointerId !== T.joyId) return;
   const max = joy.offsetWidth * .45; let dx = e.clientX - T.ox, dy = e.clientY - T.oy; const d = Math.hypot(dx, dy);
   if (d > max) { dx *= max / d; dy *= max / d; }
   T.x = dx / max; T.y = dy / max; joyK.style.transform = `translate(${dx}px,${dy}px)`;
 });
-const endJoy = e => { if (e.pointerId === T.joyId) { T.joyId = null; T.x = T.y = 0; joy.style.display = 'none'; } };
+const endJoy = /** @param {PointerEvent} e */ e => { if (e.pointerId === T.joyId) { T.joyId = null; T.x = T.y = 0; joy.style.display = 'none'; } };
 stage.addEventListener('pointerup', endJoy);
 stage.addEventListener('pointercancel', endJoy);
+/** @param {string} id @param {() => void} down @param {() => void} [up] */
 function tbtn(id, down, up) {
   const el = $(id);
-  el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); el.classList.add('dn'); down(); AU.init(); });
-  const u = e => { el.classList.remove('dn'); if (up) up(); };
+  el.addEventListener('pointerdown', /** @param {PointerEvent} e */ e => { e.preventDefault(); e.stopPropagation(); el.classList.add('dn'); down(); AU.init(); });
+  const u = () => { el.classList.remove('dn'); if (up) up(); };
   el.addEventListener('pointerup', u); el.addEventListener('pointercancel', u); el.addEventListener('pointerleave', u);
 }
 tbtn('tAtk', () => T.atk = true, () => T.atk = false);
@@ -63,15 +65,16 @@ tbtn('tPause', () => togglePause());
 /* manette */
 /** @type {{prev:boolean[],navT:number}} */
 const PAD = { prev: [], navT: 0 };
+/** Lit la manette (menus compris). @param {number} dt @returns {import('./sim/state.js').PadState|null} */
 export function pollPad(dt) {
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
   let gp = null; for (const p of pads) if (p && p.connected) { gp = p; break; }
   if (!gp) return null;
-  const b = i => gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > .4);
-  const edge = i => b(i) && !PAD.prev[i];
-  const dz = v => Math.abs(v) < .2 ? 0 : v;
+  const b = /** @param {number} i */ i => gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > .4);
+  const edge = /** @param {number} i */ i => b(i) && !PAD.prev[i];
+  const dz = /** @param {number} v */ v => Math.abs(v) < .2 ? 0 : v;
   const st = { lx: dz(gp.axes[0] || 0), ly: dz(gp.axes[1] || 0), rx: dz(gp.axes[2] || 0), ry: dz(gp.axes[3] || 0), atk: b(2) || b(7), shot: b(3) || b(6) };
-  let any = st.lx || st.ly || st.rx || st.ry; for (let i = 0; i < 16; i++) if (b(i)) any = true;
+  let any = !!(st.lx || st.ly || st.rx || st.ry); for (let i = 0; i < 16; i++) if (b(i)) any = true;
   if (any && IN.mode !== 'pad') { IN.mode = 'pad'; }
   if (edge(9) || (edge(8))) togglePause();
   if (game.state === 'play') {
@@ -86,9 +89,10 @@ export function pollPad(dt) {
     if (edge(0)) { const a = /** @type {any} */ (document.activeElement); if (a && a.click && a !== document.body) a.click(); }
     if (edge(1) && game.state === 'pause') togglePause();
   }
-  PAD.prev = gp.buttons.map((x, i) => b(i));
+  PAD.prev = gp.buttons.map((_, i) => b(i));
   return st;
 }
+/** @param {number} d */
 function menuNav(d) {
   const ov = [...document.querySelectorAll('.ov.on')].pop(); if (!ov) return;
   const items = /** @type {HTMLElement[]} */ ([...ov.querySelectorAll('button:not(.sold),input')]).filter(x => x.offsetParent !== null);

@@ -73,7 +73,8 @@ export const game = {
   /** Issue annoncée quand endT arrive à zéro. */ endWon: false,
 };
 /** Liaisons vers l'interface, branchées par ui.js (ou par un test / un bot ; vides sous Node). */
-export const fx = { /** @param {string|null} _id */ overlay(_id) {}, roomLoaded() {}, choice() {}, shop() {}, /** @param {boolean} _won */ end(_won) {} };
+/** @type {{overlay: (id: string|null) => void, roomLoaded: () => void, choice: () => void, shop: () => void, end: (won: boolean) => void}} */
+export const fx = { overlay() {}, roomLoaded() {}, choice() {}, shop() {}, end() {} };
 /** Bruitages demandés par la simulation, branchés par audio.js.
  * @type {{play: (name: string, rate?: number) => void}} */
 export const sfx = { play() {} };

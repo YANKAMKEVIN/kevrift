@@ -7,6 +7,10 @@ import { etat, fx, game, makePlayer, makeStats, music, sfx } from './state.js';
 import { banner, burst, ring, txt } from './effects.js';
 import { heal } from './combat.js';
 import { startBoss } from './boss.js';
+/** @typedef {import('./state.js').Ent} Ent */
+/** @typedef {import('./state.js').RoomType} RoomType */
+/** @typedef {import('./state.js').Wall} Wall */
+/** @typedef {import('./ups.js').Up} Up */
 
 export function newRun() {
   etat.S = makeStats();
@@ -19,6 +23,7 @@ export function newRun() {
   banner('STRATE I', ZONES[0].name);
   music.zone = 0; music.target = 1;
 }
+/** @param {RoomType} type */
 function loadRoom(type) {
   const z = type === 'boss' ? 2 : PLAN[etat.stageIdx][0];
   etat.room = { type, z, waves: [], wave: -1, waveT: .9, cleared: false, clearT: 0, walls: [], vents: [], obj: null, rewarded: false };
@@ -57,8 +62,11 @@ function loadRoom(type) {
   if (type === 'fountain') openPortals();
   if (type === 'boss') startBoss();
 }
+/** @param {number} x @param {number} y @param {number} r @param {Wall} w */
 export function rectHit(x, y, r, w) { const cx = clamp(x, w.x, w.x + w.w), cy = clamp(y, w.y, w.y + w.h); return (x - cx) ** 2 + (y - cy) ** 2 < r * r; }
+/** Un cercle touche-t-il un mur ? @param {number} x @param {number} y @param {number} r */
 export function solidAt(x, y, r) { for (const w of etat.room.walls) if (rectHit(x, y, r, w)) return true; return false; }
+/** Point libre, à plus de minD du héros, ou null. @param {number} r @param {number} minD @param {number} [tries] */
 export function freeSpot(r, minD, tries = 60) {
   for (let i = 0; i < tries; i++) {
     const x = rnd(BORDER + r + 10, W - BORDER - r - 10), y = rnd(BORDER + r + 10, H - BORDER - r - 10);
@@ -116,10 +124,12 @@ export function openPortals() {
   }
   sfx.play('portal');
 }
+/** @param {Ent} p */
 export function enterPortal(p) {
   sfx.play('portal');
   game.trans = { t: 0, type: p.type, gate: p.gate, done: false };
 }
+/** Passe à la salle suivante (et à la strate suivante au bout de la strate). @param {RoomType} type */
 export function advance(type) {
   const wasStage = etat.stageIdx;
   etat.roomInStage++; etat.roomNum++;
@@ -132,6 +142,7 @@ export function advance(type) {
   music.target = etat.room.cleared ? 0 : 1;
 }
 /* --- cartes d'amélioration --- */
+/** Tire n pouvoirs différents, pondérés par rareté. @param {number} n @param {boolean} [boost] (défi, marchand : raretés hautes plus fréquentes) @returns {Up[]} */
 export function rollUps(n, boost) {
   const pool = UPS.filter(u => (game.taken[u.id] || 0) < u.max);
   const out = [];
@@ -143,6 +154,7 @@ export function rollUps(n, boost) {
   }
   return out;
 }
+/** @param {Up} u */
 export function takeUp(u) {
   game.taken[u.id] = (game.taken[u.id] || 0) + 1; u.f();
   sfx.play('up'); burst(etat.P.x, etat.P.y, RAR[u.r].c, 30, 300, .6, 'shard'); ring(etat.P.x, etat.P.y, RAR[u.r].c, 10, 80, .4, 5);

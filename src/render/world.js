@@ -13,6 +13,7 @@ import { drawGhosts, drawPart, drawPlayer, drawSlash } from './hero.js';
 import { drawBoss, drawEnemy } from './enemies.js';
 import { drawHUD, drawTrans } from './hud.js';
 import { renderTitle } from './title.js';
+/** @typedef {import('../sim/state.js').Ent} Ent */
 
 const bloomC = document.createElement('canvas');
 bloomC.width = 240;
@@ -149,6 +150,7 @@ export function render() {
   drawHUD();
   if (game.trans) drawTrans();
 }
+/** @param {Ent} o */
 function drawObj(o) {
   const t = game.t;
   if (o.kind === 'fountain') {
@@ -173,6 +175,7 @@ function drawObj(o) {
     ctx.fillText(o.used ? 'Bonne plongée, voyageur.' : 'Approche-toi du marchand', o.x, o.y + 62);
   }
 }
+/** @param {Ent} p */
 function drawPortal(p) {
   const info = PORTAL[p.type], t = game.t, op = Math.min(1, p.t / .6);
   ctx.save(); ctx.translate(p.x, p.y); ctx.scale(op, op);

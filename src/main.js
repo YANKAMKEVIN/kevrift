@@ -46,5 +46,5 @@ document.addEventListener('visibilitychange', () => {
   else start();
 });
 /** Accès pour les tests de navigateur. */
-/** @type {any} */ (window).__kev = { game, hitEnemy, get P() { return etat.P; }, get S() { return etat.S; }, get enemies() { return etat.enemies; }, get room() { return etat.room; }, newRun, advance, takeUp, UPS, get boss() { return etat.boss; }, get portals() { return etat.portals; }, set roomNum(v) { etat.roomNum = v; }, set stageIdx(v) { etat.stageIdx = v; }, set roomInStage(v) { etat.roomInStage = v; }, get running() { return running; } };
+/** @type {any} */ (window).__kev = { game, hitEnemy, get P() { return etat.P; }, get S() { return etat.S; }, get enemies() { return etat.enemies; }, get room() { return etat.room; }, newRun, advance, takeUp, UPS, get boss() { return etat.boss; }, get portals() { return etat.portals; }, set roomNum(/** @type {number} */ v) { etat.roomNum = v; }, set stageIdx(/** @type {number} */ v) { etat.stageIdx = v; }, set roomInStage(/** @type {number} */ v) { etat.roomInStage = v; }, get running() { return running; } };
 start();

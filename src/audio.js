@@ -35,11 +35,13 @@ export const AU = {
     this.mus.gain.setTargetAtTime(CFG.mus / 100 * .55, this.ac.currentTime, .1);
     this.sfx.gain.setTargetAtTime(CFG.sfx / 100 * .8, this.ac.currentTime, .05);
   },
+  /** @param {string} name @param {number} [gap] */
   ok(name, gap = .03) {
     if (!this.ac || this.ac.state !== 'running') return false;
     const t = this.ac.currentTime; if (this.last[name] && t - this.last[name] < gap) return false;
     this.last[name] = t; return true;
   },
+  /** @param {OscillatorType} type @param {number} f0 @param {number} f1 @param {number} dur @param {number} vol @param {AudioNode|null} [dest] @param {number} [t0] @param {number} [att] */
   tone(type, f0, f1, dur, vol, dest, t0, att = .005) {
     const ac = this.ac, t = t0 || ac.currentTime;
     const o = ac.createOscillator(), g = ac.createGain();
@@ -49,6 +51,7 @@ export const AU = {
     o.connect(g); g.connect(dest || this.sfx); o.start(t); o.stop(t + dur + .05);
     return o;
   },
+  /** @param {number} dur @param {number} vol @param {BiquadFilterType} ft @param {number} f0 @param {number} f1 @param {AudioNode|null} [dest] @param {number} [t0] @param {number} [q] */
   nz(dur, vol, ft, f0, f1, dest, t0, q = 1) {
     const ac = this.ac, t = t0 || ac.currentTime;
     const s = ac.createBufferSource(); s.buffer = this.noise; s.playbackRate.value = rnd(.9, 1.1);
@@ -57,6 +60,7 @@ export const AU = {
     const g = ac.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
     s.connect(f); f.connect(g); g.connect(dest || this.sfx); s.start(t, rnd(0, .5)); s.stop(t + dur + .05);
   },
+  /** @param {string} n @param {number} [p] hauteur */
   play(n, p = 1) {
     if (!this.ok(n, n === 'pickup' ? .025 : .035)) return;
     switch (n) {
@@ -96,7 +100,7 @@ export const AU = {
     [[54, 57, 61], [50, 54, 57], [52, 56, 59], [49, 53, 56]]        // Fa# mineur : l'Archonte
   ],
   LEAD: [0, -1, 2, -1, 4, -1, 2, 1, 0, -1, 5, -1, 4, 2, 1, -1],
-  mtof: m => 440 * Math.pow(2, (m - 69) / 12),
+  mtof: /** @param {number} m */ m => 440 * Math.pow(2, (m - 69) / 12),
   schedule() {
     if (!this.ac || this.ac.state !== 'running') return;
     const ac = this.ac;
@@ -109,11 +113,12 @@ export const AU = {
       if (this.step === 0) { this.bar++; this.intensity = music.target; }
     }
   },
+  /** @param {number} s pas (0 à 15) @param {number} t instant */
   note(s, t) {
     const I = this.intensity, z = music.zone, prog = this.PROG[z], ch = prog[this.bar % 4];
     const root = ch[0] - 24, M = this.mus, f = this.mtof;
     if (s === 0) {
-      ch.forEach(m => {
+      ch.forEach(/** @param {number} m */ m => {
         const o = this.ac.createOscillator(), o2 = this.ac.createOscillator(), g = this.ac.createGain(), fl = this.ac.createBiquadFilter();
         o.type = 'sawtooth'; o2.type = 'sawtooth'; o.frequency.value = f(m); o2.frequency.value = f(m) * 1.006;
         fl.type = 'lowpass'; fl.frequency.value = I === 0 ? 700 : 1100; fl.Q.value = 2;

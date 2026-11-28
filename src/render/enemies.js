@@ -5,7 +5,9 @@ import { frnd as rnd } from '../util.js';
 import { etat } from '../sim/state.js';
 import { ENEMY_ART, art } from '../art.js';
 import { ctx, glow } from './canvas.js';
+/** @typedef {import('../sim/state.js').Ent} Ent */
 
+/** @param {Ent} e */
 export function drawEnemy(e) {
   const fl = e.flash > 0, sq = 1 + e.sq, t = e.t;
   ctx.save(); ctx.translate(e.x, e.y); ctx.scale(sq, 2 - sq);
@@ -98,6 +100,7 @@ export function drawEnemy(e) {
   if (e.elite) { ctx.strokeStyle = '#ffd45a88'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 6 + Math.sin(e.t * 5) * 2, 0, TAU); ctx.stroke(); }
 }
 /** Taille d'affichage des ennemis peints, en multiple du rayon de collision. */
+/** @type {Record<string, number>} */
 const ENEMY_SCALE = { mite: 3.4, mini: 3.4, spitter: 3.3, bomber: 3, splitter: 3.2, brute: 3.3, weaver: 3.6, sentinel: 3.4 };
 /**
  * Un ennemi peint, debout et tourné vers le héros, avec les signaux de jeu
@@ -137,6 +140,7 @@ function drawEnemyArt(e, img, face, fl) {
     for (let i = 0; i < 3; i++) { ctx.rotate(TAU / 3); ctx.fillRect(e.r * .9, -e.r - 2, 4, 4); }
   }
 }
+/** @param {Ent} b */
 export function drawBoss(b) {
   const t = b.t, fl = b.flash > 0 || (b.invT > 0 && b.intro <= 0 && Math.floor(t * 12) % 2);
   const ph = b.phase;

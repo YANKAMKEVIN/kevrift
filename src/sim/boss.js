@@ -15,12 +15,14 @@ export function startBoss() {
   banner('L\'ARCHONTE FRACTURÉ', 'Gardien du fond de la Faille', true);
   sfx.play('roar'); music.zone = 3; music.target = 2; shake(14);
 }
+/** @param {string} name */
 function bossAtk(name) {
   const b = bossEnt(); b.atk = name; b.atkT = 0; b.last = name; b.sub = 0; b.fire = 0;
   if (name === 'charge') { b.cn = b.phase >= 2 ? 2 : 1; b.cst = 'wind'; b.cstT = .8; b.ca = Math.atan2(etat.P.y - b.y, etat.P.x - b.x); sfx.play('warn'); }
   if (name === 'lasers') { const n = b.phase >= 3 ? 4 : 3, o = rnd(TAU); b.ldir = R.f() < .5 ? 1 : -1; etat.lasers = []; for (let i = 0; i < n; i++) etat.lasers.push({ a: o + i / n * TAU, warn: .9, life: 3.6 }); sfx.play('warn'); }
   if (name === 'summon') { const n = b.phase >= 3 ? 4 : 3; const l = []; for (let i = 0; i < n; i++) l.push({ type: pick(['mite', 'bomber', 'mite', 'spitter']) }); spawnWave(l); }
 }
+/** Une image du boss. @param {number} dt */
 export function updBoss(dt) {
   const b = bossEnt(); b.t += dt; b.flash -= dt; b.sq = Math.max(0, b.sq - dt * 2); b.invT -= dt; b.a += dt * (.4 + b.phase * .25);
   b.eye = Math.atan2(etat.P.y - b.y, etat.P.x - b.x);
@@ -102,6 +104,7 @@ export function updBoss(dt) {
 }
 /** @param {number} rest */
 function endAtk(rest) { const b = bossEnt(); b.atk = null; b.next = rest; }
+/** Distance d'un point à un segment. @param {number} px @param {number} py @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2 */
 function segDist(px, py, x1, y1, x2, y2) {
   const vx = x2 - x1, vy = y2 - y1, t = clamp(((px - x1) * vx + (py - y1) * vy) / (vx * vx + vy * vy), 0, 1);
   return Math.hypot(px - x1 - vx * t, py - y1 - vy * t);

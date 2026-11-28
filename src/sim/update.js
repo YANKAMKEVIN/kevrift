@@ -210,6 +210,7 @@ export function update(rdt, st) {
 
   updFx(wdt);
 }
+/** @param {number} dt */
 function updFx(dt) {
   for (const p of etat.parts) {
     p.life -= dt;
