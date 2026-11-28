@@ -1,20 +1,19 @@
-// @ts-check
 /** Écrans : titre, aide, réglages, cartes de pouvoir, marchand, pause, fin de partie. */
-import { CFG, save, persist, recordRun } from './save.js';
-import { $, fmtT, svgIcon } from './util.js';
-import { AU } from './audio.js';
-import { IN, etat, fx, game, keys, leaveRun, music } from './sim/state.js';
-import { view } from './render/view.js';
-import { touchUI } from './input.js';
-import { RAR, ROMAN, VERSION } from './config.js';
-import { UPS } from './sim/ups.js';
-import { drawFloor } from './render/floor.js';
-import { newRun, openPortals, rollUps, takeUp } from './sim/rooms.js';
-import { heal } from './sim/combat.js';
-/** @typedef {import('./sim/ups.js').Up} Up */
+import { CFG, save, persist, recordRun } from './save.ts';
+import { $, fmtT, svgIcon } from './util.ts';
+import { AU } from './audio.ts';
+import { IN, etat, fx, game, keys, leaveRun, music } from './sim/state.ts';
+import { view } from './render/view.ts';
+import { touchUI } from './input.ts';
+import { RAR, ROMAN, VERSION } from './config.ts';
+import { UPS } from './sim/ups.ts';
+import { drawFloor } from './render/floor.ts';
+import { newRun, openPortals, rollUps, takeUp } from './sim/rooms.ts';
+import { heal } from './sim/combat.ts';
+import type { Up } from './sim/ups.ts';
+import type { Stats } from './save.ts';
 
-/** @param {Up} u @param {string} [extra] */
-function cardHTML(u, extra = '') {
+function cardHTML(u: Up, extra = '') {
   const lv = game.taken[u.id] || 0;
   return `<span class="rar">${RAR[u.r].n}</span>${svgIcon(u.ic)}<b>${u.n}</b><p>${u.d}</p>${extra || `<span class="lv">${lv ? 'Niveau ' + (lv + 1) + ' / ' + u.max : 'Nouveau'}</span>`}`;
 }
@@ -37,8 +36,8 @@ function showShop() {
   const ups = rollUps(3, true), price = [40, 70, 110];
   $('chTitle').textContent = 'Le Marchand des Failles';
   const box = $('cards'); box.innerHTML = '';
-  /** @type {{u?:any,p:number,heal?:boolean}[]} */
-  const items = ups.map(u => ({ u, p: price[u.r] }));
+  type Item = { u: Up; p: number; heal?: undefined } | { u?: undefined; p: number; heal: true };
+  const items: Item[] = ups.map(u => ({ u, p: price[u.r] }));
   items.push({ heal: true, p: 30 });
   const refresh = () => {
     $('chSub').textContent = 'Tu as ' + game.shards + ' éclats. Achète autant que tu peux, puis continue.';
@@ -53,7 +52,7 @@ function showShop() {
       game.shards -= it.p; AU.play('buy');
       if (it.heal) heal(40); else takeUp(it.u);
       b.classList.add('sold'); refresh();
-      const nxt = [...box.querySelectorAll('.card:not(.sold)')][0] || $('bLeave'); if (nxt) nxt.focus();
+      const nxt = box.querySelector<HTMLElement>('.card:not(.sold)') || $('bLeave'); if (nxt) nxt.focus();
     };
     box.appendChild(b);
   });
@@ -66,11 +65,10 @@ function showShop() {
    MENUS ET FIN DE PARTIE
    ========================================================= */
 const OVS = ['oTitle', 'oHelp', 'oSet', 'oChoice', 'oPause', 'oEnd'];
-/** @param {string|null} id */
-function showOv(id) {
+function showOv(id: string | null) {
   OVS.forEach(o => $(o).classList.toggle('on', o === id));
   touchUI.style.visibility = id ? 'hidden' : 'visible';
-  if (id) setTimeout(() => { const f = $(id).querySelector('.card,.btn.big,.btn'); if (f) f.focus({ preventScroll: true }); }, 60);
+  if (id) setTimeout(() => { const f = $(id).querySelector<HTMLElement>('.card,.btn.big,.btn'); if (f) f.focus({ preventScroll: true }); }, 60);
 }
 export function togglePause() {
   if (game.state === 'play' && !etat.P.dead && !game.trans) {
@@ -81,13 +79,11 @@ export function togglePause() {
     showOv(view.ovBack);
   }
 }
-/** @param {HTMLElement} el */
-function renderUps(el) {
+function renderUps(el: HTMLElement) {
   const ids = Object.keys(game.taken);
-  el.innerHTML = ids.length ? ids.map(id => { const u = /** @type {any} */ (UPS.find(x => x.id === id)); return `<span style="--rc:${RAR[u.r].c}">${u.n}${game.taken[id] > 1 ? ' ×' + game.taken[id] : ''}</span>`; }).join('') : '<span style="--rc:#8fb4c0">Aucun pouvoir pour l\'instant</span>';
+  el.innerHTML = ids.length ? ids.map(id => { const u = UPS.find(x => x.id === id)!; return `<span style="--rc:${RAR[u.r].c}">${u.n}${game.taken[id] > 1 ? ' ×' + game.taken[id] : ''}</span>`; }).join('') : '<span style="--rc:#8fb4c0">Aucun pouvoir pour l\'instant</span>';
 }
-/** @param {boolean} won */
-function endRun(won) {
+function endRun(won: boolean) {
   if (game.state === 'over') return;
   game.state = 'over'; music.target = 0;
   $('endT').textContent = won ? 'La Faille est scellée' : 'La Faille t\'a englouti';
@@ -107,9 +103,8 @@ function showBest() {
   const c = save.stats;
   $('career').textContent = c.runs ? careerText(c) : '';
 }
-/** @param {import('./save.js').Stats} c */
-function careerText(c) {
-  const nf = /** @param {number} n */ n => n.toLocaleString('fr-FR');
+function careerText(c: Stats) {
+  const nf = (n: number) => n.toLocaleString('fr-FR');
   const deep = c.deepest >= 3 ? 'Archonte atteint' : 'strate ' + ROMAN[c.deepest] + ' atteinte';
   return `${nf(c.runs)} plongée${c.runs > 1 ? 's' : ''} · ${nf(c.wins)} victoire${c.wins > 1 ? 's' : ''} · ${nf(c.kills)} ennemis vaincus · ${deep}`;
 }
@@ -125,16 +120,16 @@ $('bHelpBack').onclick = () => showOv(view.ovBack);
 $('bSetBack').onclick = () => showOv(view.ovBack);
 $('bResume').onclick = () => togglePause();
 $('bQuit').onclick = () => { etat.P.dead = true; endRun(false); };
-$('vMus').value = CFG.mus;
-$('vSfx').value = CFG.sfx;
-$('vMus').oninput = /** @param {any} e */ e => { CFG.mus = +e.target.value; persist(); AU.vol(); };
-$('vSfx').oninput = /** @param {any} e */ e => { CFG.sfx = +e.target.value; persist(); AU.vol(); AU.play('hit'); };
-/** @param {string} id @param {'shake'|'glow'} key */
-function tg(id, key) { const el = $(id); const upd = () => { el.classList.toggle('on', CFG[key]); el.textContent = CFG[key] ? 'OUI' : 'NON'; }; upd(); el.onclick = () => { CFG[key] = !CFG[key]; persist(); upd(); }; }
+const vMus = $<HTMLInputElement>('vMus'), vSfx = $<HTMLInputElement>('vSfx');
+vMus.value = String(CFG.mus);
+vSfx.value = String(CFG.sfx);
+vMus.oninput = () => { CFG.mus = +vMus.value; persist(); AU.vol(); };
+vSfx.oninput = () => { CFG.sfx = +vSfx.value; persist(); AU.vol(); AU.play('hit'); };
+function tg(id: string, key: 'shake'|'glow') { const el = $(id); const upd = () => { el.classList.toggle('on', CFG[key]); el.textContent = CFG[key] ? 'OUI' : 'NON'; }; upd(); el.onclick = () => { CFG[key] = !CFG[key]; persist(); upd(); }; }
 tg('tgShake', 'shake');
 tg('tgGlow', 'glow');
 setInterval(() => { if (!document.hidden) $('tNova').classList.toggle('rdy', etat.P.nova >= 100); }, 150);
 
-// liaisons appelées par les règles (rooms.js, combat.js, update.js), qui ne touchent jamais au DOM
+// liaisons appelées par les règles (rooms.ts, combat.ts, update.ts), qui ne touchent jamais au DOM
 Object.assign(fx, { overlay: showOv, roomLoaded: drawFloor, choice: showChoice, shop: showShop, end: endRun });
 $('ver').textContent = 'v' + VERSION;

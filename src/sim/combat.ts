@@ -1,24 +1,21 @@
-// @ts-check
 /** Combat : coups et tirs du héros, dégâts, ennemis et leur comportement. Sans DOM. */
-import { BORDER, EDEF, H, TAU, W } from '../config.js';
-import { R, angDiff, clamp, lerp, rnd } from './math.js';
-import { IN, etat, game, music, scheduleEnd, sfx } from './state.js';
-import { freeSpot, rectHit, solidAt } from './rooms.js';
-import { banner, burst, flare, flash, ring, shake, stop, txt } from './effects.js';
-/** @typedef {import('./state.js').Ent} Ent */
-/** @typedef {import('./state.js').PadState} PadState */
+import { BORDER, EDEF, H, TAU, W } from '../config.ts';
+import { R, angDiff, clamp, lerp, rnd } from './math.ts';
+import { IN, etat, game, music, scheduleEnd, sfx } from './state.ts';
+import { freeSpot, rectHit, solidAt } from './rooms.ts';
+import { banner, burst, flare, flash, ring, shake, stop, txt } from './effects.ts';
+import type { Enemy, EnemyKind, Foe, PadState, WaveSlot } from './state.ts';
 
 /* =========================================================
    COMBAT DU HÉROS
    ========================================================= */
-/** Soigne le héros sans dépasser son maximum. @param {number} n */
-export function heal(n) {
+/** Soigne le héros sans dépasser son maximum. */
+export function heal(n: number) {
   const before = etat.P.hp; etat.P.hp = Math.min(etat.S.maxHp, etat.P.hp + n);
   if (etat.P.hp > before) { txt(etat.P.x, etat.P.y - 20, '+' + Math.round(etat.P.hp - before), '#6dffb0'); }
 }
-/** Blesse le héros (sauf invulnérable, en esquive ou protégé). Renvoie true si le coup porte.
- * @param {number} dmg @param {number} sx @param {number} sy source du coup (pour le recul) @returns {boolean} */
-export function hurtPlayer(dmg, sx, sy) {
+/** Blesse le héros (sauf invulnérable, en esquive ou protégé). Renvoie true si le coup porte. (sx, sy : source du coup, pour le recul) */
+export function hurtPlayer(dmg: number, sx: number, sy: number): boolean {
   if (etat.P.inv > 0 || etat.P.dashT > 0 || etat.P.dead || game.state !== 'play') return false;
   if (etat.S.shield && etat.P.shieldT <= 0) {
     etat.P.shieldT = 10; etat.P.inv = .6; sfx.play('shield'); ring(etat.P.x, etat.P.y, '#8fe9ff', 10, 60, .4, 5); burst(etat.P.x, etat.P.y, '#8fe9ff', 16, 250, .4, 'shard'); txt(etat.P.x, etat.P.y - 24, 'BLOQUÉ', '#8fe9ff');
@@ -43,12 +40,11 @@ function die() {
   burst(etat.P.x, etat.P.y, '#ffffff', 40, 400, 1, 'shard'); ring(etat.P.x, etat.P.y, '#ff4d6d', 10, 260, .9, 8); shake(20);
   scheduleEnd(false, 1.5);
 }
-/** @param {number} base */
-function critRoll(base) { const c = R.f() < etat.S.crit; return { v: Math.round(base * (c ? 2.2 : 1) * rnd(.92, 1.08)), c }; }
-/** Options d'un coup porté. @typedef {{kb?:number,nova?:number,nochain?:number|boolean,quiet?:number|boolean,fixed?:number|boolean}} HitOpts */
-/** Frappe un ennemi : dégâts (critique possible), recul, nova, éclair en chaîne, mort.
- * @param {Ent} e @param {number} dmg @param {number} kx @param {number} ky direction du recul @param {HitOpts} [o] */
-export function hitEnemy(e, dmg, kx, ky, o = {}) {
+function critRoll(base: number) { const c = R.f() < etat.S.crit; return { v: Math.round(base * (c ? 2.2 : 1) * rnd(.92, 1.08)), c }; }
+/** Options d'un coup porté. */
+export interface HitOpts { kb?: number; nova?: number; nochain?: number | boolean; quiet?: number | boolean; fixed?: number | boolean }
+/** Frappe un ennemi : dégâts (critique possible), recul, nova, éclair en chaîne, mort. (kx, ky : direction du recul) */
+export function hitEnemy(e: Foe, dmg: number, kx: number, ky: number, o: HitOpts = {}) {
   if (e.dead || e.spawnT > 0) return;
   if (e.type === 'boss' && e.invT > 0) { if (!o.quiet) burst(e.x + rnd(-20, 20), e.y + rnd(-20, 20), '#ffffff', 3, 120, .2); return; }
   let v = dmg, c = false;
@@ -64,8 +60,7 @@ export function hitEnemy(e, dmg, kx, ky, o = {}) {
   if (!o.nochain && etat.S.chain && R.f() < etat.S.chain) chainZap(e, 3, Math.round(etat.S.dmg * .9));
   if (e.hp <= 0) killEnemy(e);
 }
-/** @param {Ent} from @param {number} n @param {number} dmg */
-function chainZap(from, n, dmg) {
+function chainZap(from: Foe, n: number, dmg: number) {
   let cur = from; const hit = new Set([from]); sfx.play('zap');
   for (let i = 0; i < n; i++) {
     let best = null, bd = 190;
@@ -75,8 +70,7 @@ function chainZap(from, n, dmg) {
     hit.add(best); hitEnemy(best, dmg, best.x - cur.x, best.y - cur.y, { nochain: 1, kb: 60, quiet: 1 }); cur = best;
   }
 }
-/** @param {Ent} e */
-export function killEnemy(e) {
+export function killEnemy(e: Foe) {
   if (e.dead) return;
   e.dead = true; game.kills++;
   const big = e.r > 15;
@@ -94,16 +88,15 @@ export function killEnemy(e) {
   if (e.type === 'bomber' && !e.exploded) explode(e.x, e.y, 70, 0, 35, e.col);
   if (etat.S.explode) explode(e.x, e.y, 60 + 15 * etat.S.explode, 0, etat.S.dmg * (.8 + .5 * etat.S.explode), '#8fe9ff', true);
 }
-/** Explosion : blesse le héros (pd) et/ou les ennemis (ed) dans le rayon r.
- * @param {number} x @param {number} y @param {number} r @param {number} pd @param {number} ed @param {string} col @param {boolean} [small] */
-export function explode(x, y, r, pd, ed, col, small) {
+/** Explosion : blesse le héros (pd) et/ou les ennemis (ed) dans le rayon r. */
+export function explode(x: number, y: number, r: number, pd: number, ed: number, col: string, small?: boolean) {
   ring(x, y, col, 8, r, .35, 6); flare(x, y, col, r * 1.8, .3); burst(x, y, col, small ? 10 : 22, r * 4, .45);
   sfx.play('boom'); shake(small ? 4 : 9);
   if (pd && Math.hypot(etat.P.x - x, etat.P.y - y) < r + etat.P.r) hurtPlayer(pd, x, y);
   if (ed) for (const e of etat.enemies) if (!e.dead && Math.hypot(e.x - x, e.y - y) < r + e.r) hitEnemy(e, Math.round(ed), e.x - x, e.y - y, { nochain: 1, quiet: 1, fixed: 1, nova: .5 });
 }
-/** Direction de visée : souris, stick droit, sinon visée automatique. @param {PadState|null} st */
-export function aimDir(st) {
+/** Direction de visée : souris, stick droit, sinon visée automatique. */
+export function aimDir(st: PadState|null) {
   if (IN.mode === 'mouse') return Math.atan2(IN.mouse.y - etat.P.y, IN.mouse.x - etat.P.x);
   if (IN.mode === 'pad' && st && (st.rx || st.ry)) return Math.atan2(st.ry, st.rx);
   // visée automatique
@@ -157,8 +150,8 @@ export function shoot() {
   flare(etat.P.x + Math.cos(etat.P.aim) * 16, etat.P.y + Math.sin(etat.P.aim) * 16, '#8fe9ff', 26, .12);
   sfx.play('shot');
 }
-/** @param {number} mx @param {number} my direction voulue */
-export function dash(mx, my) {
+/** Esquive dans la direction voulue (mx, my), sinon dans l’axe de visée. */
+export function dash(mx: number, my: number) {
   if (etat.P.dashCh <= 0) return;
   etat.P.dashCh--; if (etat.P.dashRe <= 0) etat.P.dashRe = etat.S.dashCd;
   let a = (mx || my) ? Math.atan2(my, mx) : etat.P.aim;
@@ -166,8 +159,8 @@ export function dash(mx, my) {
   sfx.play('dash'); ring(etat.P.x, etat.P.y, '#8fe9ff', 6, 34, .25, 3);
   if (etat.S.timeSlow) { game.slow = .35; game.slowT = .9; }
 }
-/** @param {boolean} [free] déclenchée sans jauge (Dernier Souffle) */
-export function doNova(free) {
+/** Nova ; free : déclenchée sans jauge (Dernier Souffle). */
+export function doNova(free?: boolean) {
   if (!free && etat.P.nova < 100) return;
   if (!free) etat.P.nova = 0;
   sfx.play('nova'); shake(18); stop(.12); flash('#ffffff', .6);
@@ -180,13 +173,11 @@ export function doNova(free) {
 /* =========================================================
    ENNEMIS
    ========================================================= */
-/** @param {string} type @param {number} x @param {number} y @param {boolean} [elite] @returns {Ent} */
-export function makeEnemy(type, x, y, elite) {
+export function makeEnemy(type: EnemyKind, x: number, y: number, elite?: boolean): Enemy {
   const d = EDEF[type], mul = (1 + etat.roomNum * .11) * (elite ? 4 : 1);
   return { type, x, y, vx: 0, vy: 0, kx: 0, ky: 0, r: d.r * (elite ? 1.45 : 1), hp: d.hp * mul, maxHp: d.hp * mul, spd: d.spd, col: elite ? '#ffd45a' : d.col, dmg: d.dmg, elite, t: rnd(3), st: 'move', stT: 0, cd: rnd(1, 2.5), flash: 0, sq: 0, slow: 0, spawnT: 0, a: rnd(TAU), dead: false };
 }
-/** @param {{type:string,elite?:boolean}[]} list */
-export function spawnWave(list) {
+export function spawnWave(list: WaveSlot[]) {
   list.forEach((s, i) => {
     const r = EDEF[s.type].r * (s.elite ? 1.45 : 1);
     const p = freeSpot(r + 6, 230) || freeSpot(r + 6, 120) || { x: W / 2, y: 120 };
@@ -194,12 +185,12 @@ export function spawnWave(list) {
   });
   sfx.play('spawn');
 }
-/** Tir ennemi. @param {number} x @param {number} y @param {number} a angle @param {number} sp vitesse @param {string} [col] @param {number} [r] @param {number} [dmg] */
-export function eShoot(x, y, a, sp, col = '#ff3d7f', r = 6, dmg = 12) {
+/** Tir ennemi. (a : angle, sp : vitesse) */
+export function eShoot(x: number, y: number, a: number, sp: number, col = '#ff3d7f', r = 6, dmg = 12) {
   etat.bullets.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r, col, dmg, life: 6 });
 }
-/** Déplace un cercle en glissant sur les murs ; true s'il a touché un mur. @param {Ent|{x:number,y:number,r:number}} o @param {number} dx @param {number} dy */
-export function moveCircle(o, dx, dy) {
+/** Déplace un cercle en glissant sur les murs ; true s'il a touché un mur. */
+export function moveCircle(o: { x: number; y: number; r: number }, dx: number, dy: number) {
   o.x += dx; let hit = false;
   for (const w of etat.room.walls) if (rectHit(o.x, o.y, o.r, w)) { o.x = dx > 0 ? w.x - o.r - .01 : w.x + w.w + o.r + .01; hit = true; }
   o.y += dy;
@@ -208,8 +199,8 @@ export function moveCircle(o, dx, dy) {
   o.x = clamp(o.x, BORDER + o.r, W - BORDER - o.r); o.y = clamp(o.y, BORDER + o.r, H - BORDER - o.r);
   return hit;
 }
-/** Une image d'un ennemi. @param {Ent} e @param {number} dt */
-export function updEnemy(e, dt) {
+/** Une image d'un ennemi. */
+export function updEnemy(e: Enemy, dt: number) {
   e.t += dt; e.flash -= dt; e.sq = Math.max(0, e.sq - dt * 2); e.stT -= dt; e.cd -= dt;
   if (e.slow > 0) e.slow -= dt;
   const sl = e.slow > 0 ? .55 : 1;

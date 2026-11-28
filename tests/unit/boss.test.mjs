@@ -1,10 +1,10 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { etat, game, start, wireUi, run, DT } from './helpers.mjs';
-import { BOSS_HP, PLAN } from '../../src/config.js';
-import { advance } from '../../src/sim/rooms.js';
-import { hitEnemy, makeEnemy } from '../../src/sim/combat.js';
-import { update } from '../../src/sim/update.js';
-import { music } from '../../src/sim/state.js';
+import { BOSS_HP, PLAN } from '../../src/config.ts';
+import { advance } from '../../src/sim/rooms.ts';
+import { hitEnemy, makeEnemy } from '../../src/sim/combat.ts';
+import { update } from '../../src/sim/update.ts';
+import { music } from '../../src/sim/state.ts';
 
 let log;
 function toBoss(s = 31) {

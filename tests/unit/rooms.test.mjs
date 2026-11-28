@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { etat, game, start, wireUi, run, DT } from './helpers.mjs';
-import { BORDER, EDEF, H, PLAN, W, ZONES } from '../../src/config.js';
-import { advance, freeSpot, openPortals, planWaves, rectHit, solidAt, roomCleared } from '../../src/sim/rooms.js';
-import { music } from '../../src/sim/state.js';
-import { update } from '../../src/sim/update.js';
+import { BORDER, EDEF, H, PLAN, W, ZONES } from '../../src/config.ts';
+import { advance, freeSpot, openPortals, planWaves, rectHit, solidAt, roomCleared } from '../../src/sim/rooms.ts';
+import { music } from '../../src/sim/state.ts';
+import { update } from '../../src/sim/update.ts';
 
 const ROOMS = PLAN.reduce((a, p) => a + p[1], 0);
 const inner = w => !w.b;

@@ -1,24 +1,23 @@
-// @ts-check
 /** Rendu canvas d'une image de jeu : sol, entités, effets, lueur, puis HUD. */
-import { CFG } from '../save.js';
-import { EDEF, H, PORTAL, TAU, W, ZONES } from '../config.js';
-import { clamp, lerp } from '../sim/math.js';
-import { frnd as rnd } from '../util.js';
-import { etat, game } from '../sim/state.js';
-import { cv, ctx, glow } from './canvas.js';
-import { view } from './view.js';
-import { AU } from '../audio.js';
-import { floorC } from './floor.js';
-import { drawGhosts, drawPart, drawPlayer, drawSlash } from './hero.js';
-import { drawBoss, drawEnemy } from './enemies.js';
-import { drawHUD, drawTrans } from './hud.js';
-import { renderTitle } from './title.js';
-/** @typedef {import('../sim/state.js').Ent} Ent */
+import { CFG } from '../save.ts';
+import { EDEF, H, PORTAL, TAU, W, ZONES } from '../config.ts';
+import { clamp, lerp } from '../sim/math.ts';
+import { frnd as rnd } from '../util.ts';
+import { etat, game } from '../sim/state.ts';
+import { cv, ctx, glow } from './canvas.ts';
+import { view } from './view.ts';
+import { AU } from '../audio.ts';
+import { floorC } from './floor.ts';
+import { drawGhosts, drawPart, drawPlayer, drawSlash } from './hero.ts';
+import { drawBoss, drawEnemy } from './enemies.ts';
+import { drawHUD, drawTrans } from './hud.ts';
+import { renderTitle } from './title.ts';
+import type { Portal, RoomObj } from '../sim/state.ts';
 
 const bloomC = document.createElement('canvas');
 bloomC.width = 240;
 bloomC.height = 135;
-const bctx = /** @type {CanvasRenderingContext2D} */ (bloomC.getContext('2d'));
+const bctx = (bloomC.getContext('2d') as CanvasRenderingContext2D);
 
 /* =========================================================
    RENDU
@@ -84,12 +83,12 @@ export function render() {
     if (l.warn > 0) { ctx.strokeStyle = '#ff4d6d' + (Math.floor(t * 20) % 2 ? 'aa' : '44'); ctx.lineWidth = 2; ctx.setLineDash([10, 8]); ctx.beginPath(); ctx.moveTo(etat.boss.x, etat.boss.y); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]); }
     else if (l.life > 0) {
       ctx.globalCompositeOperation = 'lighter';
-      for (const [w, c] of /** @type {[number, string][]} */ ([[26, '#ff4d6d33'], [14, '#ff4d6d88'], [5, '#ffffffee']])) { ctx.strokeStyle = c; ctx.lineWidth = w + Math.sin(t * 40) * 2; ctx.beginPath(); ctx.moveTo(etat.boss.x, etat.boss.y); ctx.lineTo(ex, ey); ctx.stroke(); }
+      for (const [w, c] of ([[26, '#ff4d6d33'], [14, '#ff4d6d88'], [5, '#ffffffee']] as [number, string][])) { ctx.strokeStyle = c; ctx.lineWidth = w + Math.sin(t * 40) * 2; ctx.beginPath(); ctx.moveTo(etat.boss.x, etat.boss.y); ctx.lineTo(ex, ey); ctx.stroke(); }
       ctx.globalCompositeOperation = 'source-over';
     }
   }
   // ennemis
-  for (const e of etat.enemies) { if (e === etat.boss) drawBoss(e); else if (!e.dead) drawEnemy(e); }
+  for (const e of etat.enemies) { if (e === etat.boss) drawBoss(etat.boss); else if (!e.dead && e.type !== 'boss') drawEnemy(e); }
   // héros
   drawGhosts();
   if (!etat.P.dead) drawPlayer();
@@ -150,8 +149,7 @@ export function render() {
   drawHUD();
   if (game.trans) drawTrans();
 }
-/** @param {Ent} o */
-function drawObj(o) {
+function drawObj(o: RoomObj) {
   const t = game.t;
   if (o.kind === 'fountain') {
     ctx.fillStyle = '#0a2a22'; ctx.beginPath(); ctx.ellipse(o.x, o.y + 8, 46, 20, 0, 0, TAU); ctx.fill();
@@ -175,8 +173,7 @@ function drawObj(o) {
     ctx.fillText(o.used ? 'Bonne plongée, voyageur.' : 'Approche-toi du marchand', o.x, o.y + 62);
   }
 }
-/** @param {Ent} p */
-function drawPortal(p) {
+function drawPortal(p: Portal) {
   const info = PORTAL[p.type], t = game.t, op = Math.min(1, p.t / .6);
   ctx.save(); ctx.translate(p.x, p.y); ctx.scale(op, op);
   ctx.globalCompositeOperation = 'lighter';

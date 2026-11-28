@@ -1,17 +1,15 @@
-// @ts-check
 /** Écran titre animé (tableau peint, flux de particules, faille). */
-import { H, TAU, W } from '../config.js';
-import { frnd as rnd } from '../util.js';
-import { game } from '../sim/state.js';
-import { art } from '../art.js';
-import { ctx, glow } from './canvas.js';
+import { H, TAU, W } from '../config.ts';
+import { frnd as rnd } from '../util.ts';
+import { game } from '../sim/state.ts';
+import { art } from '../art.ts';
+import { ctx, glow } from './canvas.ts';
 
 /** Particules du titre (cosmétiques, hasard propre au rendu). */
-/** @type {{pts:{a:number,r:number,s:number,z:number,c:string}[]}} */
-export const TITLE = { pts: [] };
+export const TITLE: {pts:{a:number,r:number,s:number,z:number,c:string}[]} = { pts: [] };
 const TITLE_COLS = ['#3ff3e0', '#ff4d8d', '#ffd45a', '#c77dff'];
-/** Anime les particules du titre. @param {number} dt */
-export function updTitle(dt) {
+/** Anime les particules du titre. */
+export function updTitle(dt: number) {
   if (TITLE.pts.length < 140) TITLE.pts.push({ a: rnd(TAU), r: rnd(20, 60), s: rnd(.3, 1.2), z: rnd(), c: TITLE_COLS[Math.floor(Math.random() * TITLE_COLS.length)] });
   for (const p of TITLE.pts) { p.r += dt * 60 * p.s * (1 + p.r / 200); p.a += dt * .3 * p.s; if (p.r > 700) { p.r = rnd(10, 40); p.a = rnd(TAU); } }
 }

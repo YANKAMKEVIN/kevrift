@@ -1,7 +1,7 @@
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { VERSION } from '../../src/config.js';
+import { VERSION } from '../../src/config.ts';
 
 test('la version affichée suit package.json', () => {
   const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));

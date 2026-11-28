@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * Bot de parcours complet : joue une plongée entière sur la simulation, sans navigateur,
  * avec les mêmes commandes qu'un joueur (touches, appuis, visée automatique).
@@ -8,48 +7,45 @@
  * toute la plongée, boss compris, est alors gagnée par de vrais coups.
  * Utilisé par les tests (tests/unit/bot.test.mjs) et par `npm run bot`.
  */
-import { BORDER, H, W } from '../config.js';
-import { clamp, mulberry32, seed } from './math.js';
-import { IN, T, etat, fx, game, keys, pressed } from './state.js';
-import { newRun, openPortals, rollUps, takeUp } from './rooms.js';
-import { heal } from './combat.js';
-import { update } from './update.js';
-import { UPS } from './ups.js';
-/** @typedef {import('./state.js').Ent} Ent */
-/** @typedef {import('./ups.js').Up} Up */
+import { BORDER, H, W } from '../config.ts';
+import { clamp, mulberry32, seed } from './math.ts';
+import { IN, T, etat, fx, game, keys, pressed } from './state.ts';
+import { newRun, openPortals, rollUps, takeUp } from './rooms.ts';
+import { heal } from './combat.ts';
+import { update } from './update.ts';
+import { UPS } from './ups.ts';
+import type { Foe, Pick, Portal, RoomObj } from './state.ts';
+import type { Up } from './ups.ts';
 
 /** Pas de temps du bot : 60 images par seconde. */
 export const BOT_DT = 1 / 60;
 /** Ordre de préférence des pouvoirs (les autres viennent ensuite, par rareté). */
 const PREF = ['coeur', 'vampire', 'lame', 'frenesie', 'orbite', 'souffle', 'bouclier', 'eclair', 'echo', 'crit', 'portee', 'double', 'temps', 'givre', 'surcharge', 'epines', 'vitesse'];
-/** @param {Up} u */
-const upScore = u => { const i = PREF.indexOf(u.id); return (i < 0 ? 100 : i) - u.r * 3; };
+const upScore = (u: Up) => { const i = PREF.indexOf(u.id); return (i < 0 ? 100 : i) - u.r * 3; };
 
-/**
- * @typedef {object} BotResult
- * @property {boolean} won victoire (l'Archonte est vaincu)
- * @property {boolean} ended la plongée est arrivée à un écran de fin
- * @property {number} frames images jouées
- * @property {number} rooms salles purifiées
- * @property {string[]} path types des salles traversées
- * @property {number} stage strate atteinte (0 à 2)
- * @property {number} kills ennemis vaincus
- * @property {number} hits coups reçus
- * @property {number} bossHp points de vie restants du boss (-1 s'il n'a pas été atteint)
- * @property {Record<string, number>} taken pouvoirs pris
- * @property {string[]} errors invariants violés (doit rester vide)
- */
+/** Bilan d'une plongée jouée par le bot. */
+export interface BotResult {
+  /** Victoire (l'Archonte est vaincu). */ won: boolean;
+  /** La plongée est arrivée à un écran de fin. */ ended: boolean;
+  /** Images jouées. */ frames: number;
+  /** Salles purifiées. */ rooms: number;
+  /** Types des salles traversées. */ path: string[];
+  /** Strate atteinte (0 à 2). */ stage: number;
+  /** Ennemis vaincus. */ kills: number;
+  /** Coups reçus. */ hits: number;
+  /** Points de vie restants du boss (-1 s'il n'a pas été atteint). */ bossHp: number;
+  /** Pouvoirs pris. */ taken: Record<string, number>;
+  /** Invariants violés (doit rester vide). */ errors: string[];
+}
+/** Réglages d'une plongée du bot. */
+export interface BotOptions { seed?: number; guard?: boolean; maxFrames?: number }
 
-/**
- * Joue une plongée complète.
- * @param {{seed?: number, guard?: boolean, maxFrames?: number}} [opts]
- * @returns {BotResult}
- */
-export function playRun(opts = {}) {
+/** Joue une plongée complète. */
+export function playRun(opts: BotOptions = {}): BotResult {
   const { guard = false, maxFrames = 60 * 60 * 25 } = opts;
   const s = opts.seed ?? 1;
   const brain = mulberry32(s ^ 0x5eed);
-  /** @type {string[]} */ const errors = [];
+  const errors: string[] = [];
   let ended = false, won = false, hits = 0;
   Object.assign(fx, {
     overlay() {}, roomLoaded() {},
@@ -64,8 +60,7 @@ export function playRun(opts = {}) {
       for (const u of ups.sort((a, b) => upScore(a) - upScore(b))) if (game.shards >= price[u.r]) { game.shards -= price[u.r]; takeUp(u); }
       game.state = 'play'; openPortals();
     },
-    /** @param {boolean} w */
-    end(w) { ended = true; won = w; game.state = 'over'; },
+    end(w: boolean) { ended = true; won = w; game.state = 'over'; },
   });
   seed(s);
   clearInputs();
@@ -103,23 +98,19 @@ function clearInputs() {
   T.x = T.y = 0; T.atk = T.shot = false;
 }
 
-/**
- * Décide des commandes pour l'image : renvoie true si le bot veut se déplacer.
- * @param {() => number} brain hasard propre au bot (ne touche pas celui de la simulation)
- * @param {number} jig décalage latéral quand il est coincé (-1, 0, 1)
- */
-function think(brain, jig) {
+/** Décide des commandes pour l'image : renvoie true si le bot veut se déplacer. (brain : hasard propre au bot (ne touche pas celui de la simulation), jig : décalage latéral quand il est coincé (-1, 0, 1)) */
+function think(brain: () => number, jig: number) {
   const P = etat.P, S = etat.S, room = etat.room;
   keys.KeyJ = keys.KeyK = false; T.x = T.y = 0;
   if (P.dead || game.trans) return false;
   let gx = 0, gy = 0; // direction voulue
 
   // 1. une destination : portail, fontaine, marchand, ramassables, ou l'ennemi visé
-  /** @type {Ent|null} */ let goal = null;
+  let goal: Portal | RoomObj | Pick | null = null;
   const target = nearestEnemy();
   if (etat.portals.length) {
     const low = P.hp < S.maxHp * .5;
-    const rank = /** @param {Ent} p */ p => p.type === 'fountain' ? (low ? 0 : 3) : p.type === 'combat' ? 1 : p.type === 'shop' ? 2 : p.type === 'defi' ? (low ? 4 : 2.5) : 0;
+    const rank = (p: Portal) => p.type === 'fountain' ? (low ? 0 : 3) : p.type === 'combat' ? 1 : p.type === 'shop' ? 2 : p.type === 'defi' ? (low ? 4 : 2.5) : 0;
     goal = etat.portals.slice().sort((a, b) => rank(a) - rank(b))[0];
   } else if (room.obj && !room.obj.used) goal = room.obj;
   else if (!target && etat.picks.length) goal = etat.picks[0];
@@ -202,8 +193,8 @@ function think(brain, jig) {
   return true;
 }
 
-/** L'ennemi le plus proche, ou null. @returns {Ent|null} */
-function nearestEnemy() {
+/** L'ennemi le plus proche, ou null. */
+function nearestEnemy(): Foe | null {
   let best = null, bd = 1e9;
   for (const e of etat.enemies) {
     if (e.dead || e.spawnT > 0 || (e.type === 'boss' && e.deathT)) continue;
@@ -213,14 +204,10 @@ function nearestEnemy() {
   return best;
 }
 
-/**
- * Règles qui doivent tenir à chaque image, quelle que soit la partie.
- * @param {string[]} errors @param {number} frame
- */
-export function checkInvariants(errors, frame) {
+/** Règles qui doivent tenir à chaque image, quelle que soit la partie. */
+export function checkInvariants(errors: string[], frame: number) {
   const P = etat.P, S = etat.S;
-  /** @param {string} m */
-  const err = m => errors.push(`image ${frame} : ${m}`);
+  const err = (m: string) => errors.push(`image ${frame} : ${m}`);
   if (!Number.isFinite(P.x) || !Number.isFinite(P.y)) err('position du héros invalide');
   if (P.x < BORDER - 1 || P.x > W - BORDER + 1 || P.y < BORDER - 1 || P.y > H - BORDER + 1) err(`héros hors de l'arène (${P.x.toFixed(1)}, ${P.y.toFixed(1)})`);
   if (P.hp > S.maxHp + 1e-9) err(`PV au-dessus du maximum (${P.hp} / ${S.maxHp})`);

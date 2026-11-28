@@ -1,9 +1,8 @@
-// @ts-check
 /** Interface dessinée sur la toile : vie, nova, esquives, éclats, progression, boss, bannières, transition. */
-import { H, ROMAN, TAU, W, ZONES } from '../config.js';
-import { clamp, lerp } from '../sim/math.js';
-import { etat, game } from '../sim/state.js';
-import { ctx } from './canvas.js';
+import { H, ROMAN, TAU, W, ZONES } from '../config.ts';
+import { clamp, lerp } from '../sim/math.ts';
+import { etat, game } from '../sim/state.ts';
+import { ctx } from './canvas.ts';
 
 export function drawHUD() {
   const Z = ZONES[etat.room.z];

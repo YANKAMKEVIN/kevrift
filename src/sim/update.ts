@@ -1,16 +1,15 @@
-// @ts-check
 /** Une image de jeu : héros, projectiles, zones, salle terminée. Sans DOM : testé sous Node. */
-import { BORDER, H, TAU, W, ZONES } from '../config.js';
-import { R, angDiff, clamp, compact, count, lerp, pick, rnd } from './math.js';
-import { IN, T, etat, fx, game, keys, music, pressed, scheduleEnd, sfx } from './state.js';
-import { advance, enterPortal, roomCleared, solidAt } from './rooms.js';
-import { burst, flare, flash, ring, shake, txt } from './effects.js';
-import { aimDir, attack, dash, doNova, eShoot, explode, heal, hitEnemy, hurtPlayer, makeEnemy, moveCircle, shoot, spawnWave, updEnemy } from './combat.js';
-import { bossDeath, updBoss } from './boss.js';
+import { BORDER, H, TAU, W, ZONES } from '../config.ts';
+import { R, angDiff, clamp, compact, count, lerp, pick, rnd } from './math.ts';
+import { IN, T, etat, fx, game, keys, music, pressed, scheduleEnd, sfx } from './state.ts';
+import type { PadState } from './state.ts';
+import { advance, enterPortal, roomCleared, solidAt } from './rooms.ts';
+import { burst, flare, flash, ring, shake, txt } from './effects.ts';
+import { aimDir, attack, dash, doNova, eShoot, explode, heal, hitEnemy, hurtPlayer, makeEnemy, moveCircle, shoot, spawnWave, updEnemy } from './combat.ts';
+import { bossDeath, updBoss } from './boss.ts';
 
-/** Avance la simulation d'une image.
- * @param {number} rdt durée réelle de l'image (secondes) @param {import('./state.js').PadState|null} st manette */
-export function update(rdt, st) {
+/** Avance la simulation d'une image. (rdt : durée réelle de l'image (secondes), st : manette) */
+export function update(rdt: number, st: PadState | null) {
   if (game.endT > 0) { game.endT -= rdt; if (game.endT <= 0) { game.endT = 0; fx.end(game.endWon); return; } }
   if (game.hitstop > 0) { game.hitstop -= rdt; updFx(rdt * .15); return; }
   if (game.slowT > 0) { game.slowT -= rdt; if (game.slowT <= 0) game.slow = 1; }
@@ -77,7 +76,7 @@ export function update(rdt, st) {
         }
         for (const b of etat.bullets) if (!b.dead && Math.hypot(b.x - ox, b.y - oy) < b.r + 9) { b.dead = true; burst(b.x, b.y, '#8fe9ff', 3, 100, .2); }
       }
-      for (const e of etat.enemies) if (e.orbCd > 0) e.orbCd -= wdt;
+      for (const e of etat.enemies) if (e.orbCd! > 0) e.orbCd! -= wdt; // undefined > 0 est faux
     }
   }
 
@@ -99,7 +98,7 @@ export function update(rdt, st) {
     etat.room.clearT += rdt;
     if (etat.room.clearT > 1.1) { etat.room.rewarded = true; fx.choice(); }
   }
-  if (etat.room.type === 'shop' && etat.room.obj && !etat.room.obj.used) { etat.room.obj.t += rdt; if (etat.room.obj.t > .9 && Math.hypot(etat.P.x - etat.room.obj.x, etat.P.y - etat.room.obj.y) < 70) { etat.room.obj.used = true; fx.shop(); } }
+  if (etat.room.type === 'shop' && etat.room.obj && !etat.room.obj.used) { etat.room.obj.t! += rdt; if (etat.room.obj.t! > .9 && Math.hypot(etat.P.x - etat.room.obj.x, etat.P.y - etat.room.obj.y) < 70) { etat.room.obj.used = true; fx.shop(); } }
   if (etat.room.type === 'fountain' && etat.room.obj && !etat.room.obj.used && Math.hypot(etat.P.x - etat.room.obj.x, etat.P.y - etat.room.obj.y) < 50) {
     etat.room.obj.used = true; heal(45); sfx.play('heal'); ring(etat.room.obj.x, etat.room.obj.y, '#6dffb0', 10, 140, .6, 6); burst(etat.room.obj.x, etat.room.obj.y, '#6dffb0', 30, 260, .8, 'shard');
   }
@@ -210,11 +209,10 @@ export function update(rdt, st) {
 
   updFx(wdt);
 }
-/** @param {number} dt */
-function updFx(dt) {
+function updFx(dt: number) {
   for (const p of etat.parts) {
     p.life -= dt;
-    if (p.k === 'spark' || p.k === 'shard' || p.k === 'dot') { p.x += (p.vx || 0) * dt; p.y += (p.vy || 0) * dt; if (p.vx) { p.vx *= Math.pow(.03, dt); p.vy *= Math.pow(.03, dt); } p.rot += (p.vr || 0) * dt; }
+    if (p.k === 'spark' || p.k === 'shard' || p.k === 'dot') { p.x += (p.vx || 0) * dt; p.y += (p.vy || 0) * dt; if (p.vx) { p.vx *= Math.pow(.03, dt); p.vy! *= Math.pow(.03, dt); } p.rot! += (p.vr || 0) * dt; } // point lumineux : rot reste NaN, jamais lu
   }
   compact(etat.parts, p => p.life > 0);
   for (const t of etat.texts) t.t += dt;

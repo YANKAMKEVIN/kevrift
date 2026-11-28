@@ -4,11 +4,11 @@
 // Si une règle change volontairement : EMPREINTE_ECRIRE=1 npx vitest run tests/unit/empreinte.test.mjs
 import { describe, test, expect } from 'vitest';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { playRun } from '../../src/sim/bot';
-import { mulberry32, seed } from '../../src/sim/math';
-import { IN, T, etat, fx, game, keys, pressed } from '../../src/sim/state';
-import { newRun, openPortals, rollUps, takeUp } from '../../src/sim/rooms';
-import { update } from '../../src/sim/update';
+import { playRun } from '../../src/sim/bot.ts';
+import { mulberry32, seed } from '../../src/sim/math.ts';
+import { IN, T, etat, fx, game, keys, pressed } from '../../src/sim/state.ts';
+import { newRun, openPortals, rollUps, takeUp } from '../../src/sim/rooms.ts';
+import { update } from '../../src/sim/update.ts';
 
 const FILE = new URL('./empreinte.json', import.meta.url);
 const DT = 1 / 60;

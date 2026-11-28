@@ -4,18 +4,19 @@
 //   npm run bot -- --graine 7         une seule graine, détaillée
 // Échoue (code 1) si une plongée n'arrive pas au bout, si un invariant casse,
 // ou si une plongée gardée (PV remis au maximum) ne bat pas l'Archonte.
-import { playRun } from '../src/sim/bot.js';
+import { playRun } from '../src/sim/bot.ts';
+import type { BotResult } from '../src/sim/bot.ts';
 
-const arg = (name, def) => { const i = process.argv.indexOf('--' + name); return i < 0 ? def : Number(process.argv[i + 1]); };
+const arg = (name: string, def: number) => { const i = process.argv.indexOf('--' + name); return i < 0 ? def : Number(process.argv[i + 1]); };
 const N = arg('parties', 10), only = arg('graine', NaN);
 const seeds = Number.isNaN(only) ? Array.from({ length: N }, (_, i) => i + 1) : [only];
-const problems = [];
+const problems: string[] = [];
 const t0 = Date.now();
 
 for (const guard of [false, true]) {
-  const rows = seeds.map(seed => ({ seed, ...playRun({ seed, guard }) }));
+  const rows: (BotResult & { seed: number })[] = seeds.map(seed => ({ seed, ...playRun({ seed, guard }) }));
   const won = rows.filter(r => r.won).length;
-  const avg = k => (rows.reduce((a, r) => a + r[k], 0) / rows.length).toFixed(1);
+  const avg = (k: 'rooms' | 'kills' | 'hits') => (rows.reduce((a, r) => a + r[k], 0) / rows.length).toFixed(1);
   const reached = rows.filter(r => r.bossHp >= 0).length;
   console.log(`\n${guard ? 'Plongées gardées (PV remis au maximum)' : 'Plongées libres'} : ${rows.length}`);
   console.log(`  victoires ${won}/${rows.length} · boss atteint ${reached}/${rows.length} · salles ${avg('rooms')} · ennemis ${avg('kills')} · coups reçus ${avg('hits')} · durée ${(rows.reduce((a, r) => a + r.frames, 0) / rows.length / 60).toFixed(0)} s de jeu`);

@@ -1,19 +1,20 @@
-// @ts-check
 /** Musique adaptative et bruitages générés avec la Web Audio API. */
-import { CFG } from './save.js';
-import { frnd as rnd } from './util.js';
-import { music, sfx } from './sim/state.js';
+import { CFG } from './save.ts';
+import { frnd as rnd } from './util.ts';
+import { music, sfx } from './sim/state.ts';
 
 /* =========================================================
    AUDIO : moteur de synthèse, effets et musique générative
    ========================================================= */
-/** @type {any} Nœuds Web Audio créés au premier geste du joueur. */
+/** Nœuds Web Audio créés au premier geste du joueur. */
 export const AU = {
-  ac: null, master: null, mus: null, sfx: null, noise: null, delay: null, last: {},
+  ac: null as AudioContext | null, master: null as unknown as GainNode, mus: null as unknown as GainNode, sfx: null as unknown as GainNode,
+  noise: null as unknown as AudioBuffer, delay: null as unknown as DelayNode,
+  /** Dernier instant joué de chaque bruitage (anti-rafale). */ last: {} as Record<string, number>,
   intensity: 0, step: 0, nextT: 0, bar: 0, on: false,
   init() {
     if (this.ac) { if (this.ac.state === 'suspended') this.ac.resume(); return; }
-    const AC = window.AudioContext || /** @type {any} */ (window).webkitAudioContext; if (!AC) return;
+    const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext; if (!AC) return;
     try { this.ac = new AC(); } catch (e) { return; }
     const ac = this.ac;
     const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
@@ -35,15 +36,13 @@ export const AU = {
     this.mus.gain.setTargetAtTime(CFG.mus / 100 * .55, this.ac.currentTime, .1);
     this.sfx.gain.setTargetAtTime(CFG.sfx / 100 * .8, this.ac.currentTime, .05);
   },
-  /** @param {string} name @param {number} [gap] */
-  ok(name, gap = .03) {
+  ok(name: string, gap = .03) {
     if (!this.ac || this.ac.state !== 'running') return false;
     const t = this.ac.currentTime; if (this.last[name] && t - this.last[name] < gap) return false;
     this.last[name] = t; return true;
   },
-  /** @param {OscillatorType} type @param {number} f0 @param {number} f1 @param {number} dur @param {number} vol @param {AudioNode|null} [dest] @param {number} [t0] @param {number} [att] */
-  tone(type, f0, f1, dur, vol, dest, t0, att = .005) {
-    const ac = this.ac, t = t0 || ac.currentTime;
+  tone(type: OscillatorType, f0: number, f1: number, dur: number, vol: number, dest?: AudioNode | null, t0?: number, att = .005) {
+    const ac = this.ac!, t = t0 || ac.currentTime;
     const o = ac.createOscillator(), g = ac.createGain();
     o.type = type; o.frequency.setValueAtTime(f0, t);
     if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
@@ -51,17 +50,16 @@ export const AU = {
     o.connect(g); g.connect(dest || this.sfx); o.start(t); o.stop(t + dur + .05);
     return o;
   },
-  /** @param {number} dur @param {number} vol @param {BiquadFilterType} ft @param {number} f0 @param {number} f1 @param {AudioNode|null} [dest] @param {number} [t0] @param {number} [q] */
-  nz(dur, vol, ft, f0, f1, dest, t0, q = 1) {
-    const ac = this.ac, t = t0 || ac.currentTime;
+  nz(dur: number, vol: number, ft: BiquadFilterType, f0: number, f1: number, dest?: AudioNode | null, t0?: number, q = 1) {
+    const ac = this.ac!, t = t0 || ac.currentTime;
     const s = ac.createBufferSource(); s.buffer = this.noise; s.playbackRate.value = rnd(.9, 1.1);
     const f = ac.createBiquadFilter(); f.type = ft; f.Q.value = q; f.frequency.setValueAtTime(f0, t);
     if (f1 !== f0) f.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
     const g = ac.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
     s.connect(f); f.connect(g); g.connect(dest || this.sfx); s.start(t, rnd(0, .5)); s.stop(t + dur + .05);
   },
-  /** @param {string} n @param {number} [p] hauteur */
-  play(n, p = 1) {
+  /** p : hauteur (1 = normale) */
+  play(n: string, p = 1) {
     if (!this.ok(n, n === 'pickup' ? .025 : .035)) return;
     switch (n) {
       case 'slash': this.nz(.13, .35, 'bandpass', 3800 * p, 700, null, 0, 2.5); this.tone('sine', 520 * p, 180, .09, .12); break;
@@ -75,21 +73,21 @@ export const AU = {
       case 'hurt': this.tone('sawtooth', 320, 70, .3, .25); this.nz(.2, .4, 'lowpass', 1800, 200); break;
       case 'eshot': this.tone('sine', 560, 300, .12, .05); break;
       case 'pickup': this.tone('sine', 1100 * p, 1700 * p, .06, .05); break;
-      case 'heal': [660, 880, 1320].forEach((f, i) => this.tone('sine', f, f, .25, .08, null, this.ac.currentTime + i * .06)); break;
-      case 'up': [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone('triangle', f, f, .35, .09, this.delay, this.ac.currentTime + i * .055)); break;
+      case 'heal': [660, 880, 1320].forEach((f, i) => this.tone('sine', f, f, .25, .08, null, this.ac!.currentTime + i * .06)); break;
+      case 'up': [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone('triangle', f, f, .35, .09, this.delay, this.ac!.currentTime + i * .055)); break;
       case 'nova': this.tone('sine', 140, 28, 1, .5); this.nz(.9, .5, 'lowpass', 5000, 80); this.tone('sawtooth', 70, 35, .8, .15); break;
       case 'boom': this.tone('sine', 110, 30, .45, .4); this.nz(.45, .45, 'lowpass', 2500, 100); break;
       case 'spawn': this.tone('sine', 200, 800, .3, .04); break;
-      case 'portal': [392, 523, 659, 784].forEach((f, i) => this.tone('sine', f, f * 1.01, .6, .06, this.delay, this.ac.currentTime + i * .08)); break;
-      case 'clear': [440, 554, 659, 880].forEach((f, i) => this.tone('triangle', f, f, .5, .1, this.delay, this.ac.currentTime + i * .09)); break;
+      case 'portal': [392, 523, 659, 784].forEach((f, i) => this.tone('sine', f, f * 1.01, .6, .06, this.delay, this.ac!.currentTime + i * .08)); break;
+      case 'clear': [440, 554, 659, 880].forEach((f, i) => this.tone('triangle', f, f, .5, .1, this.delay, this.ac!.currentTime + i * .09)); break;
       case 'roar': [55, 58, 82].forEach(f => this.tone('sawtooth', f, f * .7, 1.6, .18, null, 0, .2)); this.nz(1.5, .3, 'bandpass', 300, 120, null, 0, 3); break;
       case 'laser': this.tone('sawtooth', 90, 90, .6, .08); this.tone('square', 180, 175, .6, .03); break;
       case 'warn': this.tone('square', 880, 880, .07, .05); break;
-      case 'buy': this.tone('square', 990, 1480, .08, .07); this.tone('sine', 1480, 1480, .2, .06, null, this.ac.currentTime + .08); break;
+      case 'buy': this.tone('square', 990, 1480, .08, .07); this.tone('sine', 1480, 1480, .2, .06, null, this.ac!.currentTime + .08); break;
       case 'ui': this.tone('sine', 900, 1200, .04, .04); break;
       case 'shield': this.tone('triangle', 1800, 600, .25, .12); break;
       case 'zap': this.nz(.12, .25, 'highpass', 3000, 6000); this.tone('square', 1800, 300, .08, .05); break;
-      case 'beat': this.tone('sine', 70, 40, .15, .3); this.tone('sine', 65, 38, .15, .22, null, this.ac.currentTime + .16); break;
+      case 'beat': this.tone('sine', 70, 40, .15, .3); this.tone('sine', 65, 38, .15, .22, null, this.ac!.currentTime + .16); break;
     }
   },
   /* Musique : un séquenceur au double-croche, quatre couches */
@@ -100,7 +98,7 @@ export const AU = {
     [[54, 57, 61], [50, 54, 57], [52, 56, 59], [49, 53, 56]]        // Fa# mineur : l'Archonte
   ],
   LEAD: [0, -1, 2, -1, 4, -1, 2, 1, 0, -1, 5, -1, 4, 2, 1, -1],
-  mtof: /** @param {number} m */ m => 440 * Math.pow(2, (m - 69) / 12),
+  mtof: (m: number) => 440 * Math.pow(2, (m - 69) / 12),
   schedule() {
     if (!this.ac || this.ac.state !== 'running') return;
     const ac = this.ac;
@@ -113,13 +111,13 @@ export const AU = {
       if (this.step === 0) { this.bar++; this.intensity = music.target; }
     }
   },
-  /** @param {number} s pas (0 à 15) @param {number} t instant */
-  note(s, t) {
+  /** Une double-croche du séquenceur (s : pas de 0 à 15, t : instant). */
+  note(s: number, t: number) {
     const I = this.intensity, z = music.zone, prog = this.PROG[z], ch = prog[this.bar % 4];
     const root = ch[0] - 24, M = this.mus, f = this.mtof;
     if (s === 0) {
-      ch.forEach(/** @param {number} m */ m => {
-        const o = this.ac.createOscillator(), o2 = this.ac.createOscillator(), g = this.ac.createGain(), fl = this.ac.createBiquadFilter();
+      ch.forEach((m: number) => {
+        const o = this.ac!.createOscillator(), o2 = this.ac!.createOscillator(), g = this.ac!.createGain(), fl = this.ac!.createBiquadFilter();
         o.type = 'sawtooth'; o2.type = 'sawtooth'; o.frequency.value = f(m); o2.frequency.value = f(m) * 1.006;
         fl.type = 'lowpass'; fl.frequency.value = I === 0 ? 700 : 1100; fl.Q.value = 2;
         const len = 60 / (music.zone === 3 ? 138 : 112 + z * 6) * 4;
@@ -136,7 +134,7 @@ export const AU = {
       // basse
       const bp = [1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1];
       if (bp[s]) {
-        const o = this.ac.createOscillator(), g = this.ac.createGain(), fl = this.ac.createBiquadFilter();
+        const o = this.ac!.createOscillator(), g = this.ac!.createGain(), fl = this.ac!.createBiquadFilter();
         o.type = 'square'; o.frequency.value = f(root + (s === 3 || s === 11 ? 12 : 0));
         fl.type = 'lowpass'; fl.frequency.setValueAtTime(900, t); fl.frequency.exponentialRampToValueAtTime(160, t + .14);
         g.gain.setValueAtTime(.11, t); g.gain.exponentialRampToValueAtTime(.001, t + .16);

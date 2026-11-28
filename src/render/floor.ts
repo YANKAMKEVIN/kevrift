@@ -1,15 +1,14 @@
-// @ts-check
 /** Sol de la salle, dessiné une fois par salle dans une toile en cache. */
-import { BORDER, H, TAU, W, ZONES } from '../config.js';
-import { frnd as rnd } from '../util.js';
-import { etat } from '../sim/state.js';
-import { ZONE_ART, art } from '../art.js';
+import { BORDER, H, TAU, W, ZONES } from '../config.ts';
+import { frnd as rnd } from '../util.ts';
+import { etat } from '../sim/state.ts';
+import { ZONE_ART, art } from '../art.ts';
 
 /** Toile du sol (deux fois la taille logique, pour rester net). */
 export const floorC = document.createElement('canvas');
 floorC.width = W * 2;
 floorC.height = H * 2;
-const fctx = /** @type {CanvasRenderingContext2D} */ (floorC.getContext('2d'));
+const fctx = (floorC.getContext('2d') as CanvasRenderingContext2D);
 
 /* --- dessin du sol, mis en cache --- */
 export function drawFloor() {
@@ -35,7 +34,7 @@ export function drawFloor() {
     let x = rnd(BORDER, W - BORDER), y = rnd(BORDER, H - BORDER), a = rnd(TAU);
     const pts = [[x, y]];
     for (let i = 0; i < 5 + Math.floor(Math.random() * 7); i++) { a += rnd(-.9, .9); x += Math.cos(a) * rnd(14, 34); y += Math.sin(a) * rnd(14, 34); pts.push([x, y]); }
-    for (const [lw, al] of /** @type {[number, string][]} */ ([[7, '10'], [3, '30'], [1.2, '90']])) {
+    for (const [lw, al] of ([[7, '10'], [3, '30'], [1.2, '90']] as [number, string][])) {
       g.strokeStyle = Z.acc + al; g.lineWidth = lw; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke();
     }
   }

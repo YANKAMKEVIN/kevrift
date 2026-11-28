@@ -6,22 +6,16 @@
 // sauvegarde abîmée mise de côté.
 // Lancer : npm run partie
 import { chromium } from 'playwright';
-import { spawn } from 'node:child_process';
-import { createServer, connect } from 'node:net';
 import { mkdirSync } from 'node:fs';
+import { startServer } from './serveur.mjs';
 
-const PORT = await new Promise(res => { const s = createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
-const URL = `http://127.0.0.1:${PORT}/index.html?graine=11&turbo=4`;
+// SITE_DIR=dist : teste la version construite par Vite plutôt que les sources
+const server = await startServer();
+const URL = `${server.base}index.html?graine=11&turbo=4`;
 const OUT = process.env.SMOKE_SHOTS || 'test-results';
 const KEY = 'kevrift.sauvegarde';
 mkdirSync(OUT, { recursive: true });
-// SITE_DIR=dist : teste la version construite par Vite plutôt que les sources
-const server = spawn('python3', ['-m', 'http.server', String(PORT), '--bind', '127.0.0.1', '--directory', process.env.SITE_DIR || '.'], { stdio: 'ignore' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-for (let i = 0; i < 100; i++) {
-  const ok = await new Promise(res => { const c = connect(PORT, '127.0.0.1', () => { c.end(); res(true); }); c.on('error', () => res(false)); });
-  if (ok) break; await sleep(100);
-}
 const fails = [];
 const check = (ok, msg) => { console.log(`${ok ? 'OK   ' : 'ÉCHEC'} ${msg}`); if (!ok) fails.push(msg); };
 const ASSIST = () => {
@@ -123,6 +117,6 @@ try {
   await page.click('#bPlay');
   check(await page.evaluate(k => localStorage.getItem(k + '.abimee'), KEY) === '{abîmée', 'sauvegarde abîmée mise de côté, le jeu démarre');
   check(errors.length === 0, `aucune erreur console${errors.length ? ' : ' + errors.slice(0, 3).join(' | ') : ''}`);
-} finally { await browser.close(); server.kill(); }
+} finally { await browser.close(); server.stop(); }
 console.log(fails.length ? `\n${fails.length} échec(s).` : '\nPlongée complète réussie.');
 process.exit(fails.length ? 1 : 0);

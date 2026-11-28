@@ -1,7 +1,7 @@
 // Parcours complet automatisé : le bot joue des plongées entières sur la simulation, sans navigateur.
 import { describe, test, expect } from 'vitest';
-import { playRun } from '../../src/sim/bot.js';
-import { PLAN } from '../../src/config.js';
+import { playRun } from '../../src/sim/bot.ts';
+import { PLAN } from '../../src/config.ts';
 
 const ROOMS = PLAN.reduce((a, p) => a + p[1], 0);
 

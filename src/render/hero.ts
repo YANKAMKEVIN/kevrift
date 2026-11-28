@@ -1,14 +1,12 @@
-// @ts-check
 /** Dessin du héros, de ses lames, de ses fantômes d'esquive et des particules. */
-import { TAU } from '../config.js';
-import { lerp } from '../sim/math.js';
-import { etat, game } from '../sim/state.js';
-import { art } from '../art.js';
-import { ctx, glow } from './canvas.js';
-/** @typedef {import('../sim/state.js').Ent} Ent */
+import { TAU } from '../config.ts';
+import { lerp } from '../sim/math.ts';
+import { etat, game } from '../sim/state.ts';
+import { art } from '../art.ts';
+import { ctx, glow } from './canvas.ts';
+import type { Particle, Slash } from '../sim/state.ts';
 
-/** @param {Ent} p */
-export function drawPart(p) {
+export function drawPart(p: Particle) {
   const a = Math.max(0, p.life / p.max);
   if (p.k === 'spark') {
     ctx.strokeStyle = p.col; ctx.globalAlpha = a; ctx.lineWidth = 2;
@@ -72,8 +70,7 @@ export function drawPlayer() {
   }
 }
 /** Le héros peint : debout, tourné vers sa visée, avec un léger rebond de marche. */
-/** @param {HTMLImageElement} img */
-function drawHeroArt(img) {
+function drawHeroArt(img: HTMLImageElement) {
   const P = etat.P, sz = 46, bob = Math.abs(Math.sin(P.step)) * 2;
   ctx.save(); ctx.translate(P.x, P.y - 6 - bob);
   if (Math.cos(P.aim) < 0) ctx.scale(-1, 1);
@@ -100,8 +97,7 @@ function drawHeroShape() {
   ctx.fillStyle = '#3ff3e0'; ctx.fillRect(-1.5, -3, 3, 3);
   ctx.restore();
 }
-/** @param {Ent} s */
-export function drawSlash(s) {
+export function drawSlash(s: Slash) {
   const q = s.t / s.dur, a0 = s.a - s.arc / 2, sweep = s.arc * Math.min(1, q * 2.2);
   const start = s.step === 1 ? s.a + s.arc / 2 : a0, dir = s.step === 1 ? -1 : 1;
   ctx.save(); ctx.translate(etat.P.x, etat.P.y);

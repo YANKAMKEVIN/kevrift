@@ -1,10 +1,10 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { etat, game, start, wireUi } from './helpers.mjs';
-import { UPS } from '../../src/sim/ups.js';
-import { rollUps, takeUp } from '../../src/sim/rooms.js';
-import { makeStats } from '../../src/sim/state.js';
-import { ICONS, RAR } from '../../src/config.js';
-import { seed } from '../../src/sim/math.js';
+import { UPS } from '../../src/sim/ups.ts';
+import { rollUps, takeUp } from '../../src/sim/rooms.ts';
+import { makeStats } from '../../src/sim/state.ts';
+import { ICONS, RAR } from '../../src/config.ts';
+import { seed } from '../../src/sim/math.ts';
 
 const byId = id => UPS.find(u => u.id === id);
 beforeEach(() => { wireUi(); start(21); });

@@ -1,10 +1,10 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { etat, game, start, wireUi, keys, pressed, DT, run } from './helpers.mjs';
-import { EDEF, W } from '../../src/config.js';
-import { attack, dash, doNova, eShoot, explode, heal, hitEnemy, hurtPlayer, killEnemy, makeEnemy, moveCircle, shoot, aimDir } from '../../src/sim/combat.js';
-import { update } from '../../src/sim/update.js';
-import { solidAt } from '../../src/sim/rooms.js';
-import { R } from '../../src/sim/math.js';
+import { EDEF, W } from '../../src/config.ts';
+import { attack, dash, doNova, eShoot, explode, heal, hitEnemy, hurtPlayer, killEnemy, makeEnemy, moveCircle, shoot, aimDir } from '../../src/sim/combat.ts';
+import { update } from '../../src/sim/update.ts';
+import { solidAt } from '../../src/sim/rooms.ts';
+import { R } from '../../src/sim/math.ts';
 
 /** Arène vide avec un ennemi prêt à se battre. */
 function lone(type = 'mite', dx = 0, dy = -40, elite = false) {

@@ -1,7 +1,7 @@
 import { test, describe } from 'vitest';
 import assert from 'node:assert/strict';
-import { KEY, LEGACY, SAVE_VERSION, defaults, parse, migrate, isValid, load, write, fromLegacy, beats } from '../../src/save.js';
-import { TOP_N, v1ToV2, addToTop, addToStats, emptyStats, isStats, byRank } from '../../src/save.js';
+import { KEY, LEGACY, SAVE_VERSION, defaults, parse, migrate, isValid, load, write, fromLegacy, beats } from '../../src/save.ts';
+import { TOP_N, v1ToV2, addToTop, addToStats, emptyStats, isStats, byRank } from '../../src/save.ts';
 import { memStore } from './helpers.mjs';
 
 const best = { score: 72.5, won: false, rooms: 7, time: 412.3 };

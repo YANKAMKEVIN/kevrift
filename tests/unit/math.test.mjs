@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
-import { R, seed, mulberry32, rnd, rint, pick, clamp, lerp, angDiff, compact, count } from '../../src/sim/math.js';
-import { cappedDpr, MAX_DPR } from '../../src/render/view.js';
+import { R, seed, mulberry32, rnd, rint, pick, clamp, lerp, angDiff, compact, count } from '../../src/sim/math.ts';
+import { cappedDpr, MAX_DPR } from '../../src/render/view.ts';
 
 describe('hasard à graine', () => {
   test('même graine, même suite', () => {

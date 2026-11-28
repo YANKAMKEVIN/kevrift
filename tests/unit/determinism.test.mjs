@@ -1,7 +1,7 @@
 // Déterminisme : une graine donne toujours la même plongée, et seul le hasard à graine est utilisé.
 import { describe, test, expect } from 'vitest';
-import { playRun } from '../../src/sim/bot.js';
-import { R, seed } from '../../src/sim/math.js';
+import { playRun } from '../../src/sim/bot.ts';
+import { R, seed } from '../../src/sim/math.ts';
 
 describe('déterminisme', () => {
   test('même graine, même plongée, image pour image', () => {
@@ -20,7 +20,7 @@ describe('déterminisme', () => {
     expect(calls).toBe(0);
   });
   test('le hasard cosmétique ne décale pas celui de la simulation', async () => {
-    const { frnd } = await import('../../src/util.js');
+    const { frnd } = await import('../../src/util.ts');
     seed(8); const a = [R.f(), R.f()];
     seed(8); R.f(); for (let i = 0; i < 100; i++) frnd(); const b = R.f();
     expect(b).toBe(a[1]);

@@ -1,11 +1,11 @@
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { etat, game, assistedRun, start, run, wireUi, keys, pressed, DT } from './helpers.mjs';
-import { PLAN, BOSS_HP } from '../../src/config.js';
-import { UPS } from '../../src/sim/ups.js';
-import { rollUps, takeUp, planWaves, solidAt } from '../../src/sim/rooms.js';
-import { hurtPlayer, heal, makeEnemy, hitEnemy } from '../../src/sim/combat.js';
-import { update } from '../../src/sim/update.js';
+import { PLAN, BOSS_HP } from '../../src/config.ts';
+import { UPS } from '../../src/sim/ups.ts';
+import { rollUps, takeUp, planWaves, solidAt } from '../../src/sim/rooms.ts';
+import { hurtPlayer, heal, makeEnemy, hitEnemy } from '../../src/sim/combat.ts';
+import { update } from '../../src/sim/update.ts';
 
 const ROOMS = PLAN.reduce((a, p) => a + p[1], 0);
 

@@ -1,29 +1,27 @@
-// @ts-check
 /** Le Gardien de la Faille : attaques et phases. Sans DOM. */
-import { BOSS_HP, H, TAU, W } from '../config.js';
-import { R, angDiff, clamp, lerp, pick, rint, rnd } from './math.js';
-import { etat, game, music, sfx } from './state.js';
-/** @typedef {import('./state.js').Ent} Ent */
-import { banner, burst, flare, flash, ring, shake, stop } from './effects.js';
-import { eShoot, hurtPlayer, killEnemy, moveCircle, spawnWave } from './combat.js';
+import { BOSS_HP, H, TAU, W } from '../config.ts';
+import { R, angDiff, clamp, lerp, pick, rint, rnd } from './math.ts';
+import { etat, game, music, sfx } from './state.ts';
+import type { Boss, BossAtk, EnemyKind, WaveSlot } from './state.ts';
+import { banner, burst, flare, flash, ring, shake, stop } from './effects.ts';
+import { eShoot, hurtPlayer, killEnemy, moveCircle, spawnWave } from './combat.ts';
 
-/** Le boss en cours (n'est appelé que pendant le combat de boss). @returns {Ent} */
-const bossEnt = () => /** @type {Ent} */ (etat.boss);
+/** Le boss en cours (n'est appelé que pendant le combat de boss). */
+const bossEnt = (): Boss => etat.boss!;
 export function startBoss() {
-  etat.boss = { type: 'boss', x: W / 2, y: 170, vx: 0, vy: 0, kx: 0, ky: 0, r: 40, hp: BOSS_HP, maxHp: BOSS_HP, col: '#ffd45a', dmg: 20, flash: 0, sq: 0, slow: 0, spawnT: 0, t: 0, phase: 1, atk: null, atkT: 0, next: 3.2, last: '', invT: 3.2, a: 0, plates: 6, intro: 3.2, eye: 0, dead: false, deathT: 0 };
+  etat.boss = { type: 'boss', x: W / 2, y: 170, vx: 0, vy: 0, kx: 0, ky: 0, r: 40, hp: BOSS_HP, maxHp: BOSS_HP, col: '#ffd45a', dmg: 20, flash: 0, sq: 0, slow: 0, spawnT: 0, t: 0, phase: 1, atk: null, atkT: 0, next: 3.2, last: '', invT: 3.2, a: 0, plates: 6, intro: 3.2, eye: 0, dead: false, deathT: 0, sub: 0, fire: 0, cn: 0, cst: 'rest', cstT: 0, ca: 0, ldir: 1 };
   etat.enemies.push(etat.boss);
   banner('L\'ARCHONTE FRACTURÉ', 'Gardien du fond de la Faille', true);
   sfx.play('roar'); music.zone = 3; music.target = 2; shake(14);
 }
-/** @param {string} name */
-function bossAtk(name) {
+function bossAtk(name: BossAtk) {
   const b = bossEnt(); b.atk = name; b.atkT = 0; b.last = name; b.sub = 0; b.fire = 0;
   if (name === 'charge') { b.cn = b.phase >= 2 ? 2 : 1; b.cst = 'wind'; b.cstT = .8; b.ca = Math.atan2(etat.P.y - b.y, etat.P.x - b.x); sfx.play('warn'); }
   if (name === 'lasers') { const n = b.phase >= 3 ? 4 : 3, o = rnd(TAU); b.ldir = R.f() < .5 ? 1 : -1; etat.lasers = []; for (let i = 0; i < n; i++) etat.lasers.push({ a: o + i / n * TAU, warn: .9, life: 3.6 }); sfx.play('warn'); }
-  if (name === 'summon') { const n = b.phase >= 3 ? 4 : 3; const l = []; for (let i = 0; i < n; i++) l.push({ type: pick(['mite', 'bomber', 'mite', 'spitter']) }); spawnWave(l); }
+  if (name === 'summon') { const n = b.phase >= 3 ? 4 : 3; const l: WaveSlot[] = []; for (let i = 0; i < n; i++) l.push({ type: pick<EnemyKind>(['mite', 'bomber', 'mite', 'spitter']) }); spawnWave(l); }
 }
-/** Une image du boss. @param {number} dt */
-export function updBoss(dt) {
+/** Une image du boss. */
+export function updBoss(dt: number) {
   const b = bossEnt(); b.t += dt; b.flash -= dt; b.sq = Math.max(0, b.sq - dt * 2); b.invT -= dt; b.a += dt * (.4 + b.phase * .25);
   b.eye = Math.atan2(etat.P.y - b.y, etat.P.x - b.x);
   if (b.deathT > 0) return;
@@ -46,8 +44,8 @@ export function updBoss(dt) {
     b.vx = lerp(b.vx, (tx - b.x) * 1.2, dt * 2); b.vy = lerp(b.vy, (ty - b.y) * 1.2, dt * 2);
     b.next -= dt * fast;
     if (b.next <= 0) {
-      const pool = b.phase === 1 ? ['spiral', 'fan', 'charge', 'ring'] : b.phase === 2 ? ['spiral', 'fan', 'charge', 'lasers', 'summon', 'ring'] : ['spiral', 'lasers', 'rain', 'charge', 'ring', 'fan', 'summon'];
-      let n; do { n = pick(pool); } while (n === b.last);
+      const pool: BossAtk[] = b.phase === 1 ? ['spiral', 'fan', 'charge', 'ring'] : b.phase === 2 ? ['spiral', 'fan', 'charge', 'lasers', 'summon', 'ring'] : ['spiral', 'lasers', 'rain', 'charge', 'ring', 'fan', 'summon'];
+      let n: BossAtk; do { n = pick(pool); } while (n === b.last);
       if (n === 'summon' && etat.enemies.length > 6) n = 'fan';
       bossAtk(n);
     }
@@ -102,10 +100,9 @@ export function updBoss(dt) {
   b.kx *= .9; b.ky *= .9;
   if (Math.hypot(etat.P.x - b.x, etat.P.y - b.y) < b.r + etat.P.r) hurtPlayer(b.atk === 'charge' ? 28 : 18, b.x, b.y);
 }
-/** @param {number} rest */
-function endAtk(rest) { const b = bossEnt(); b.atk = null; b.next = rest; }
-/** Distance d'un point à un segment. @param {number} px @param {number} py @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2 */
-function segDist(px, py, x1, y1, x2, y2) {
+function endAtk(rest: number) { const b = bossEnt(); b.atk = null; b.next = rest; }
+/** Distance d'un point à un segment. */
+function segDist(px: number, py: number, x1: number, y1: number, x2: number, y2: number) {
   const vx = x2 - x1, vy = y2 - y1, t = clamp(((px - x1) * vx + (py - y1) * vy) / (vx * vx + vy * vy), 0, 1);
   return Math.hypot(px - x1 - vx * t, py - y1 - vy * t);
 }

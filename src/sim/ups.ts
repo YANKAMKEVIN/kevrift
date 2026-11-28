@@ -1,12 +1,11 @@
-// @ts-check
 /** Les améliorations (pouvoirs) : effet sur les statistiques du héros. */
-import { etat } from './state.js';
-import { heal } from './combat.js';
+import type { ICONS } from '../config.ts';
+import { etat } from './state.ts';
+import { heal } from './combat.ts';
 
-/** Un pouvoir : r = rareté (0 commun, 1 rare, 2 légendaire), max = niveau maximum, f = effet.
- * @typedef {{id:string,n:string,d:string,r:number,ic:keyof typeof import('../config.js').ICONS,max:number,f:()=>unknown}} Up */
-/** @type {Up[]} */
-export const UPS = [
+/** Un pouvoir : r = rareté (0 commun, 1 rare, 2 légendaire), max = niveau maximum, f = effet. */
+export interface Up { id: string; n: string; d: string; r: number; ic: keyof typeof ICONS; max: number; f: () => unknown }
+export const UPS: Up[] = [
   { id: 'lame', n: 'Lame Affûtée', d: '+25 % de dégâts de mêlée', r: 0, ic: 'blade', max: 5, f: () => etat.S.dmg *= 1.25 },
   { id: 'frenesie', n: 'Frénésie', d: '+18 % de vitesse d\'attaque', r: 0, ic: 'blade', max: 5, f: () => etat.S.atkSpd *= 1.18 },
   { id: 'portee', n: 'Grande Lame', d: '+22 % de portée de mêlée', r: 0, ic: 'blade', max: 3, f: () => etat.S.range *= 1.22 },
