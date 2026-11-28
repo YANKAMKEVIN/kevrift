@@ -65,6 +65,17 @@ try {
   check(await page.evaluate(() => __kev.game.dealt > 0), 'les coups de lame touchent de vrais ennemis');
   await page.screenshot({ path: `${OUT}/partie-1-combat.png` });
 
+  // onglet caché : la partie se met en pause et la boucle d'affichage s'arrête (batterie), puis repart
+  const setHidden = h => page.evaluate(h => { Object.defineProperty(document, 'hidden', { value: h, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); }, h);
+  await setHidden(true); await sleep(200);
+  const hidden = await page.evaluate(() => ({ state: __kev.game.state, running: __kev.running, t: __kev.game.t }));
+  await sleep(300);
+  check(hidden.state === 'pause' && !hidden.running && await page.evaluate(t => __kev.game.t === t, hidden.t), 'onglet caché : pause et plus aucune image calculée');
+  await setHidden(false); await sleep(200);
+  check(await page.evaluate(() => __kev.running), 'onglet revenu : la boucle repart');
+  await page.click('#bResume');
+  await page.waitForFunction(() => __kev.game.state === 'play');
+
   // 2) plongée assistée jusqu'au bout
   await page.evaluate(ASSIST);
   const t0 = Date.now(); let cartes = 0, marchand = 0;

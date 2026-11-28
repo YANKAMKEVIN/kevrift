@@ -14,6 +14,7 @@ import { advance, newRun, takeUp } from './sim/rooms.js';
 import { update } from './sim/update.js';
 import { togglePause } from './ui.js';
 import { loadArt } from './art.js';
+import { AU } from './audio.js';
 
 // ?graine=N : partie reproductible ; ?turbo=N : N images de jeu par image affichée (tests)
 const Q = new URLSearchParams(location.search);
@@ -42,8 +43,13 @@ function start() {
   requestAnimationFrame(frame);
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { if (game.state === 'play') togglePause(); }
-  else start();
+  if (document.hidden) {
+    if (game.state === 'play') togglePause();
+    if (AU.ac && AU.ac.state === 'running') AU.ac.suspend(); // plus de musique ni de séquenceur en arrière-plan
+  } else {
+    if (AU.ac && AU.ac.state === 'suspended') AU.ac.resume();
+    start();
+  }
 });
 /** Accès pour les tests de navigateur. */
 /** @type {any} */ (window).__kev = { game, hitEnemy, get P() { return etat.P; }, get S() { return etat.S; }, get enemies() { return etat.enemies; }, get room() { return etat.room; }, newRun, advance, takeUp, UPS, get boss() { return etat.boss; }, get portals() { return etat.portals; }, set roomNum(/** @type {number} */ v) { etat.roomNum = v; }, set stageIdx(/** @type {number} */ v) { etat.stageIdx = v; }, set roomInStage(/** @type {number} */ v) { etat.roomInStage = v; }, get running() { return running; } };

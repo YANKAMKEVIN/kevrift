@@ -133,7 +133,7 @@ $('vSfx').oninput = /** @param {any} e */ e => { CFG.sfx = +e.target.value; pers
 function tg(id, key) { const el = $(id); const upd = () => { el.classList.toggle('on', CFG[key]); el.textContent = CFG[key] ? 'OUI' : 'NON'; }; upd(); el.onclick = () => { CFG[key] = !CFG[key]; persist(); upd(); }; }
 tg('tgShake', 'shake');
 tg('tgGlow', 'glow');
-setInterval(() => { const n = $('tNova'); if (etat.P) n.classList.toggle('rdy', etat.P.nova >= 100); }, 150);
+setInterval(() => { if (!document.hidden) $('tNova').classList.toggle('rdy', etat.P.nova >= 100); }, 150);
 
 // liaisons appelées par les règles (rooms.js, combat.js, update.js), qui ne touchent jamais au DOM
 Object.assign(fx, { overlay: showOv, roomLoaded: drawFloor, choice: showChoice, shop: showShop, end: endRun });
