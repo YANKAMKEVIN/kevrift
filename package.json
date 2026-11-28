@@ -1,18 +1,31 @@
 {
   "name": "kevrift",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node tools/serve.mjs",
-    "test": "npm run types && npm run unit && npm run smoke && npm run partie",
-    "types": "tsc -p .",
-    "unit": "node --test \"tests/unit/*.test.mjs\"",
+    "start": "vite --port 8000",
+    "test": "npm run types && npm run unit && npm run bot && npm run build && npm run e2e",
+    "types": "tsc -p . && tsc -p tools",
+    "unit": "vitest run",
+    "unit:watch": "vitest",
+    "bot": "node tools/bot.ts",
+    "build": "vite build",
+    "preview": "vite preview --port 8000",
+    "e2e": "npm run smoke && npm run smoke:dist && npm run partie && npm run commandes",
     "smoke": "node tests/smoke.mjs",
-    "partie": "node tests/partie.mjs"
+    "smoke:dist": "SITE_DIR=dist SMOKE_PLAY_MS=8000 node tests/smoke.mjs",
+    "partie": "node tests/partie.mjs",
+    "commandes": "node tests/commandes.mjs"
   },
   "devDependencies": {
+    "@types/node": "22.15.30",
     "playwright": "1.63.0",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "vite": "6.3.5",
+    "vitest": "3.2.4"
+  },
+  "engines": {
+    "node": ">=22.18"
   }
 }

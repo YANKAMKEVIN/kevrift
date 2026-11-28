@@ -3,14 +3,14 @@
 // inaccessible. Réglages propres au jeu : tests/smoke.config.mjs.
 // Lancer : npm test   (serveur local démarré automatiquement)
 import { chromium, devices } from 'playwright';
-import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
-import { createServer } from 'node:net';
 import cfg from './smoke.config.mjs';
+import { startServer } from './serveur.mjs';
 
-// port libre choisi par le système (plusieurs jeux peuvent tourner en même temps)
-const PORT = await new Promise(res => { const s = createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
-const BASE = `http://127.0.0.1:${PORT}/${cfg.page || 'index.html'}`;
+// SITE_DIR=dist : teste la version construite par Vite plutôt que les sources
+const server = await startServer();
+const BASE = server.base + (cfg.page || 'index.html');
+const ORIGIN = new URL(server.base).origin;
 const SHOTS = process.env.SMOKE_SHOTS || 'test-results';
 const PLAY_MS = Number(process.env.SMOKE_PLAY_MS || cfg.playMs || 20000);
 const PROFILES = [
@@ -20,22 +20,11 @@ const PROFILES = [
 ];
 const only = process.env.SMOKE_ONLY;
 
-const server = spawn('python3', ['-m', 'http.server', String(PORT), '--bind', '127.0.0.1'], { stdio: 'ignore' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const failures = [];
 const fail = (p, msg) => { failures.push(`[${p}] ${msg}`); console.log(`  ÉCHEC ${msg}`); };
 const ignored = t => (cfg.ignoreErrors || []).some(re => re.test(t));
 
-// attend que le serveur local accepte les connexions (simple essai TCP)
-async function waitServer() {
-  const { connect } = await import('node:net');
-  for (let i = 0; i < 100; i++) {
-    const ok = await new Promise(res => { const c = connect(PORT, '127.0.0.1', () => { c.end(); res(true); }); c.on('error', () => res(false)); });
-    if (ok) return;
-    await sleep(100);
-  }
-  throw new Error('serveur local injoignable');
-}
 
 // Chaque bouton visible doit pouvoir être amené à l'écran (défilement compris) et y tenir.
 async function checkButtons(page, p, step) {
@@ -97,7 +86,6 @@ async function fps(page, ms = 2000) {
 }
 
 try {
-  await waitServer();
   mkdirSync(SHOTS, { recursive: true });
   const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
   for (const prof of PROFILES) {
@@ -108,7 +96,7 @@ try {
     const errors = [];
     page.on('console', m => { const t = `${m.text()} ${m.location()?.url || ''}`; if (m.type() === 'error' && !ignored(t)) errors.push(t.trim()); });
     page.on('pageerror', e => { if (!ignored(e.message)) errors.push(e.message); });
-    page.on('requestfailed', r => { if (r.url().startsWith(`http://127.0.0.1:${PORT}`) && !ignored(r.url())) errors.push(`requête échouée ${r.url()}`); });
+    page.on('requestfailed', r => { if (r.url().startsWith(ORIGIN) && !ignored(r.url())) errors.push(`requête échouée ${r.url()}`); });
     page.on('response', r => { if (r.status() >= 400 && !ignored(r.url())) errors.push(`HTTP ${r.status()} ${r.url()}`); });
     await page.goto(BASE, { waitUntil: 'load' });
     await sleep(1500);
@@ -140,7 +128,7 @@ try {
 } catch (e) {
   failures.push(`erreur du test : ${e.stack || e}`);
 } finally {
-  server.kill();
+  server.stop();
 }
 if (failures.length) { console.log(`\n${failures.length} échec(s) :\n` + failures.join('\n')); process.exit(1); }
 console.log('\nTest de fumée réussi.');

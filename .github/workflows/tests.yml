@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   unit:
-    name: Types et tests unitaires (salles, combat, boss, plongée simulée, sauvegarde)
+    name: Types, tests unitaires (vitest), bot headless et construction
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -23,12 +23,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --no-audit --no-fund
+          cache: npm
+      - run: npm ci --no-audit --no-fund
       - run: npm run types
       - run: npm run unit
+      - run: npm run bot -- --parties 20
+      - run: npm run build
+      - name: Version construite
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
 
   navigateur:
-    name: Fumée (ordinateur, iPhone SE, Pixel 7) et partie complète
+    name: Navigateur (fumée, partie complète, clavier, manette, tactile)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -36,10 +45,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --no-audit --no-fund
+          cache: npm
+      - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
+      - run: npm run build
       - run: npm run smoke
+      - run: npm run smoke:dist
       - run: npm run partie
+      - run: SITE_DIR=dist npm run partie
+      - run: npm run commandes
       - name: Captures
         if: always()
         uses: actions/upload-artifact@v4
