@@ -15,7 +15,8 @@ const URL = `http://127.0.0.1:${PORT}/index.html?graine=11&turbo=4`;
 const OUT = process.env.SMOKE_SHOTS || 'test-results';
 const KEY = 'kevrift.sauvegarde';
 mkdirSync(OUT, { recursive: true });
-const server = spawn('python3', ['-m', 'http.server', String(PORT), '--bind', '127.0.0.1'], { stdio: 'ignore' });
+// SITE_DIR=dist : teste la version construite par Vite plutôt que les sources
+const server = spawn('python3', ['-m', 'http.server', String(PORT), '--bind', '127.0.0.1', '--directory', process.env.SITE_DIR || '.'], { stdio: 'ignore' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 for (let i = 0; i < 100; i++) {
   const ok = await new Promise(res => { const c = connect(PORT, '127.0.0.1', () => { c.end(); res(true); }); c.on('error', () => res(false)); });

@@ -20,7 +20,8 @@ const PROFILES = [
 ];
 const only = process.env.SMOKE_ONLY;
 
-const server = spawn('python3', ['-m', 'http.server', String(PORT), '--bind', '127.0.0.1'], { stdio: 'ignore' });
+// SITE_DIR=dist : teste la version construite par Vite plutôt que les sources
+const server = spawn('python3', ['-m', 'http.server', String(PORT), '--bind', '127.0.0.1', '--directory', process.env.SITE_DIR || '.'], { stdio: 'ignore' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const failures = [];
 const fail = (p, msg) => { failures.push(`[${p}] ${msg}`); console.log(`  ÉCHEC ${msg}`); };
